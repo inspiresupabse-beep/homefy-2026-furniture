@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { createTeamUser } from "@/app/(dashboard)/users/actions";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Select } from "@/components/ui/input";
@@ -10,8 +9,7 @@ import { USER_ROLES } from "@/lib/roles";
 import { STAFF_POWER_OPTIONS } from "@/lib/permissions";
 import { formatActionError } from "@/lib/action-error";
 
-export function CreateUserForm() {
-  const router = useRouter();
+export function CreateUserForm({ onCreated }: { onCreated?: () => void }) {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -42,7 +40,7 @@ export function CreateUserForm() {
 
     setSuccess(true);
     form.reset();
-    router.refresh();
+    onCreated?.();
   }
 
   return (

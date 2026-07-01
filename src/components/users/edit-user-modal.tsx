@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { updateTeamUser } from "@/app/(dashboard)/users/actions";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Select } from "@/components/ui/input";
@@ -14,11 +13,12 @@ import { X } from "lucide-react";
 export function EditUserModal({
   user,
   onClose,
+  onUpdated,
 }: {
   user: Profile;
   onClose: () => void;
+  onUpdated?: () => void;
 }) {
-  const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -47,7 +47,7 @@ export function EditUserModal({
     }
 
     onClose();
-    router.refresh();
+    onUpdated?.();
   }
 
   return (

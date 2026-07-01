@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import {
   DndContext,
@@ -36,9 +36,10 @@ export default function LeadsPageClient() {
   const [showForm, setShowForm] = useState(false);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const supabase = createClient();
+  const supabaseRef = useRef(createClient());
 
   const fetchData = useCallback(async () => {
+    const supabase = supabaseRef.current;
     const [{ data: leadsData }, { data: agentsData }, { data: ordersData }] = await Promise.all([
       supabase
         .from("leads")
@@ -57,7 +58,7 @@ export default function LeadsPageClient() {
     }
     setOrderByLeadId(map);
     setLoading(false);
-  }, [supabase]);
+  }, []);
 
   useEffect(() => {
     fetchData();
@@ -75,7 +76,7 @@ export default function LeadsPageClient() {
     }
 
     if (!loading) {
-      void supabase
+      void supabaseRef.current
         .from("leads")
         .select("*, assigned_agent:profiles!leads_assigned_to_fkey(id, full_name, email, role, phone, created_at, updated_at)")
         .eq("id", leadId)
@@ -87,7 +88,7 @@ export default function LeadsPageClient() {
           }
         });
     }
-  }, [searchParams, leads, loading, supabase]);
+  }, [searchParams, leads, loading]);
 
   useEffect(() => {
     function onOpenLead(e: Event) {
@@ -97,7 +98,7 @@ export default function LeadsPageClient() {
         setDetailLead(found);
         return;
       }
-      void supabase
+      void supabaseRef.current
         .from("leads")
         .select("*, assigned_agent:profiles!leads_assigned_to_fkey(id, full_name, email, role, phone, created_at, updated_at)")
         .eq("id", leadId)
@@ -109,7 +110,7 @@ export default function LeadsPageClient() {
 
     window.addEventListener(OPEN_LEAD_EVENT, onOpenLead);
     return () => window.removeEventListener(OPEN_LEAD_EVENT, onOpenLead);
-  }, [leads, supabase]);
+  }, [leads]);
 
   const filteredLeads = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -159,7 +160,7 @@ export default function LeadsPageClient() {
       prev.map((l) => (l.id === leadId ? { ...l, status: newStatus } : l))
     );
 
-    const { error } = await supabase
+    const { error } = await supabaseRef.current
       .from("leads")
       .update({ status: newStatus })
       .eq("id", leadId);
@@ -173,7 +174,7 @@ export default function LeadsPageClient() {
   }
 
   async function handleAssign(leadId: string, agentId: string | null) {
-    const { error } = await supabase
+    const { error } = await supabaseRef.current
       .from("leads")
       .update({ assigned_to: agentId })
       .eq("id", leadId);

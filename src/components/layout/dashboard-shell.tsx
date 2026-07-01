@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { Menu } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { HomefyLogo } from "@/components/layout/homefy-logo";
+import { NavigationProgress } from "@/components/layout/navigation-progress";
 import { Sidebar } from "@/components/layout/sidebar";
 import { MobileBottomNav } from "@/components/layout/sidebar-nav";
 import { NotificationBell } from "@/components/notifications/notification-bell";
@@ -34,6 +35,7 @@ export function DashboardShell({
 
   return (
     <NotificationProvider userId={profile.id}>
+      <NavigationProgress />
       <div className="flex min-h-screen bg-stone-50">
       {mobileOpen && (
         <button

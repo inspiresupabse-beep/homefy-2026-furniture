@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { Pencil, Trash2 } from "lucide-react";
 import { deleteTeamUser } from "@/app/(dashboard)/users/actions";
 import { EditUserModal } from "@/components/users/edit-user-modal";
@@ -14,11 +13,12 @@ import type { Profile } from "@/lib/types/database";
 export function UsersList({
   users,
   currentUserId,
+  onChanged,
 }: {
   users: Profile[];
   currentUserId: string;
+  onChanged?: () => void;
 }) {
-  const router = useRouter();
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [editingUser, setEditingUser] = useState<Profile | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -37,7 +37,7 @@ export function UsersList({
       return;
     }
 
-    router.refresh();
+    onChanged?.();
   }
 
   return (
@@ -178,7 +178,11 @@ export function UsersList({
       </Card>
 
       {editingUser && (
-        <EditUserModal user={editingUser} onClose={() => setEditingUser(null)} />
+        <EditUserModal
+          user={editingUser}
+          onClose={() => setEditingUser(null)}
+          onUpdated={onChanged}
+        />
       )}
     </>
   );

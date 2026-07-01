@@ -1,3 +1,5 @@
+import { Suspense } from "react";
+import { getProfile } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { formatCurrency } from "@/lib/utils";
 import { Card, CardContent } from "@/components/ui/card";
@@ -5,7 +7,7 @@ import { DashboardCharts } from "@/components/dashboard/dashboard-charts";
 import { AdminStaffPerformancePanel } from "@/components/dashboard/admin-staff-performance";
 import { HotLeadsWidget } from "@/components/dashboard/hot-leads-widget";
 import { PageHeader } from "@/components/layout/page-header";
-import { getStaffPerformanceData } from "@/lib/insights/staff-performance";
+import { getStaffPerformanceData } from "@/lib/insights/staff-performance.server";
 import { TrendingUp, Users, CreditCard, Package } from "lucide-react";
 import { STAFF_ROLES } from "@/lib/roles";
 import type { DashboardStats } from "@/lib/types/database";
@@ -70,14 +72,7 @@ async function getDashboardStats(): Promise<DashboardStats> {
 }
 
 export default async function DashboardPage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  const { data: profile } = user
-    ? await supabase.from("profiles").select("role").eq("id", user.id).single()
-    : { data: null };
+  const profile = await getProfile();
 
   if (profile?.role === "admin") {
     const staffRows = await getStaffPerformanceData();
@@ -130,9 +125,9 @@ export default async function DashboardPage() {
           description="Overview of Homefy sales & operations"
         />
 
-        <div className="lg:hidden">
+        <Suspense fallback={<div className="h-64 animate-pulse rounded-xl bg-stone-100 lg:sticky lg:top-6" />}>
           <HotLeadsWidget />
-        </div>
+        </Suspense>
 
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-2 xl:grid-cols-4">
           {statCards.map(({ label, value, icon: Icon, color }) => (
@@ -157,7 +152,9 @@ export default async function DashboardPage() {
       </div>
 
       <aside className="hidden w-full shrink-0 lg:block lg:w-80 xl:w-96">
-        <HotLeadsWidget />
+        <Suspense fallback={<div className="h-80 animate-pulse rounded-xl bg-stone-100" />}>
+          <HotLeadsWidget />
+        </Suspense>
       </aside>
     </div>
   );
