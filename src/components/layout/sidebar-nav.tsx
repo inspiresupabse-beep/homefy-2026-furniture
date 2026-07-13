@@ -10,6 +10,7 @@ import {
   BarChart3,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { WhatsAppIcon } from "@/components/icons/whatsapp-icon";
 import { canAccessLeads, canAccessOrders, canManageUsers } from "@/lib/permissions";
 import type { Profile } from "@/lib/types/database";
 
@@ -17,6 +18,7 @@ const allNavItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard, key: "dashboard" as const },
   { href: "/leads", label: "Leads", icon: Contact, key: "leads" as const },
   { href: "/orders", label: "Orders", icon: ShoppingBag, key: "orders" as const },
+  { href: "/whatsapp", label: "WhatsApp", icon: WhatsAppIcon, key: "whatsapp" as const },
 ];
 
 const adminNavItems = [
@@ -28,6 +30,7 @@ function getNavItems(profile: Profile) {
   return allNavItems.filter((item) => {
     if (item.key === "leads") return canAccessLeads(profile);
     if (item.key === "orders") return canAccessOrders(profile);
+    if (item.key === "whatsapp") return canAccessLeads(profile) || canAccessOrders(profile);
     return true;
   });
 }

@@ -41,3 +41,7 @@ yarn-error.log*
 next-env.d.ts
 
 .vercel
+
+# whatsapp listener runtime (local auth + extracted logs)
+.wwebjs_cache/
+/data/

@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Homefy WhatsApp Listener</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="app">
+      <header>
+        <h1>WhatsApp Listener</h1>
+        <p>Monitor group messages, extract matches, and send lead reminders</p>
+      </header>
+
+      <section class="card status-card">
+        <h2>Connection</h2>
+        <div id="status-badge" class="badge badge-waiting">Initializing…</div>
+        <p id="status-detail" class="muted">Starting WhatsApp client…</p>
+        <div id="qr-wrap" class="qr-wrap hidden">
+          <p>Scan with WhatsApp → Linked Devices</p>
+          <img id="qr-image" alt="WhatsApp QR code" />
+        </div>
+      </section>
+
+      <div class="grid">
+        <section class="card">
+          <div class="card-head">
+            <h2>Extracted messages</h2>
+            <a id="download-btn" class="btn btn-primary" href="/api/download">Download .txt</a>
+          </div>
+          <ul id="message-log" class="log-list">
+            <li class="muted">Waiting for matching messages…</li>
+          </ul>
+        </section>
+
+        <section class="card">
+          <h2>Send lead reminder</h2>
+          <p class="muted">Staff can message a customer about lead updates</p>
+          <form id="reminder-form" class="form">
+            <label>
+              Customer name
+              <input type="text" id="customer-name" placeholder="John Doe" required />
+            </label>
+            <label>
+              Phone (10 digits or +91…)
+              <input type="tel" id="phone" placeholder="9876543210" required />
+            </label>
+            <label>
+              Reminder / update
+              <textarea id="reminder" rows="4" placeholder="Your site visit is scheduled for tomorrow at 11 AM." required></textarea>
+            </label>
+            <button type="submit" class="btn btn-whatsapp">Send WhatsApp reminder</button>
+          </form>
+          <p id="send-feedback" class="feedback hidden"></p>
+
+          <hr />
+
+          <h3>Custom message</h3>
+          <form id="custom-form" class="form">
+            <label>
+              Phone
+              <input type="tel" id="custom-phone" placeholder="9876543210" required />
+            </label>
+            <label>
+              Message
+              <textarea id="custom-message" rows="3" required></textarea>
+            </label>
+            <button type="submit" class="btn btn-secondary">Send message</button>
+          </form>
+        </section>
+      </div>
+
+      <section class="card">
+        <h2>Activity</h2>
+        <ul id="activity-log" class="log-list compact"></ul>
+      </section>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="/app.js"></script>
+  </body>
+</html>
