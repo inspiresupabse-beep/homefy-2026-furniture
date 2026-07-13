@@ -9,7 +9,17 @@ Monitor a WhatsApp group, extract messages matching a pattern, save them to a te
 - **Socket.io** — QR code & live status to the browser
 - **Vanilla HTML/CSS/JS** — Dashboard UI
 
-## Setup
+## Production deploy (no developer PC)
+
+| Option | Cost | Card? | Client-ready? | Guide |
+|--------|------|-------|---------------|--------|
+| **Oracle Cloud** | $0/month | Yes | Yes | [DEPLOY-ORACLE-FREE.md](./DEPLOY-ORACLE-FREE.md) |
+| **Render** | $0 free / ~$7 Starter | No (free) | Free: **No** (sleeps) | [DEPLOY-RENDER.md](./DEPLOY-RENDER.md) |
+| Hetzner VPS | ~€4/month | Yes | Yes | [DEPLOY-HETZNER.md](./DEPLOY-HETZNER.md) |
+
+**Recommended:** Oracle (free + always on) or Render **Starter** if you want no Oracle signup.
+
+## Setup (local dev)
 
 ```bash
 cd whatsapp-listener
