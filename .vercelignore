@@ -1,0 +1,6 @@
+# WhatsApp listener runs on a separate server (not Vercel)
+whatsapp-listener/
+
+# Local runtime caches
+.wwebjs_cache/
+data/
