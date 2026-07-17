@@ -19,6 +19,7 @@ import { LeadCard } from "@/components/leads/lead-card";
 import { LeadDetailModal } from "@/components/leads/lead-detail-modal";
 import { LeadFormModal } from "@/components/leads/lead-form-modal";
 import { PipelineSearch } from "@/components/leads/pipeline-search";
+import { PipelineStageNav } from "@/components/leads/pipeline-stage-nav";
 import { PageHeader } from "@/components/layout/page-header";
 import { STAFF_ROLES } from "@/lib/roles";
 import { normalizeLead } from "@/lib/leads/schema";
@@ -36,6 +37,9 @@ export default function LeadsPageClient() {
   const [showForm, setShowForm] = useState(false);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [activeStageIndex, setActiveStageIndex] = useState(0);
+  const columnRefs = useRef<Map<LeadStatus, HTMLDivElement>>(new Map());
+  const kanbanScrollRef = useRef<HTMLDivElement>(null);
   const supabaseRef = useRef(createClient());
 
   const fetchData = useCallback(async () => {
@@ -130,6 +134,51 @@ export default function LeadsPageClient() {
     });
   }, [leads, search]);
 
+  const stageCounts = useMemo(() => {
+    const counts = {} as Record<LeadStatus, number>;
+    for (const status of LEAD_STATUSES) {
+      counts[status.value] = filteredLeads.filter((l) => l.status === status.value).length;
+    }
+    return counts;
+  }, [filteredLeads]);
+
+  const scrollToStage = useCallback((index: number) => {
+    const clamped = Math.max(0, Math.min(index, LEAD_STATUSES.length - 1));
+    const status = LEAD_STATUSES[clamped]?.value;
+    if (!status) return;
+
+    const column = columnRefs.current.get(status);
+    column?.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+    setActiveStageIndex(clamped);
+  }, []);
+
+  useEffect(() => {
+    const root = kanbanScrollRef.current;
+    if (!root || typeof IntersectionObserver === "undefined") return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visible = entries
+          .filter((e) => e.isIntersecting)
+          .sort((a, b) => b.intersectionRatio - a.intersectionRatio);
+        const top = visible[0];
+        if (!top) return;
+        const status = top.target.getAttribute("data-status") as LeadStatus | null;
+        if (!status) return;
+        const index = LEAD_STATUSES.findIndex((s) => s.value === status);
+        if (index >= 0) setActiveStageIndex(index);
+      },
+      { root, threshold: [0.35, 0.5, 0.65] }
+    );
+
+    for (const status of LEAD_STATUSES) {
+      const el = columnRefs.current.get(status.value);
+      if (el) observer.observe(el);
+    }
+
+    return () => observer.disconnect();
+  }, [loading, filteredLeads.length]);
+
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
   );
@@ -206,16 +255,33 @@ export default function LeadsPageClient() {
         totalCount={leads.length}
       />
 
+      <PipelineStageNav
+        stages={LEAD_STATUSES}
+        counts={stageCounts}
+        activeIndex={activeStageIndex}
+        onSelect={scrollToStage}
+        onPrev={() => scrollToStage(activeStageIndex - 1)}
+        onNext={() => scrollToStage(activeStageIndex + 1)}
+      />
+
       <DndContext
         sensors={sensors}
         collisionDetection={closestCorners}
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
       >
-        <div className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-2 lg:-mx-0 lg:grid lg:grid-cols-3 lg:gap-4 lg:overflow-visible lg:px-0 lg:pb-0 xl:grid-cols-6">
+        <div
+          ref={kanbanScrollRef}
+          className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-2 lg:-mx-0 lg:grid lg:grid-cols-3 lg:gap-4 lg:overflow-visible lg:px-0 lg:pb-0 xl:grid-cols-6"
+        >
           {LEAD_STATUSES.map((status) => (
             <div
               key={status.value}
+              ref={(el) => {
+                if (el) columnRefs.current.set(status.value, el);
+                else columnRefs.current.delete(status.value);
+              }}
+              data-status={status.value}
               className="w-[min(85vw,260px)] shrink-0 snap-center lg:w-auto lg:shrink"
             >
               <KanbanColumn
