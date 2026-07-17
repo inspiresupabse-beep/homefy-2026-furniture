@@ -25,6 +25,7 @@ import { STAFF_ROLES } from "@/lib/roles";
 import { normalizeLead } from "@/lib/leads/schema";
 import { OPEN_LEAD_EVENT } from "@/lib/events";
 import { LEAD_STATUSES, type Lead, type LeadStatus, type Profile } from "@/lib/types/database";
+import { cn } from "@/lib/utils";
 import { Plus } from "lucide-react";
 
 export default function LeadsPageClient() {
@@ -38,8 +39,7 @@ export default function LeadsPageClient() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [activeStageIndex, setActiveStageIndex] = useState(0);
-  const columnRefs = useRef<Map<LeadStatus, HTMLDivElement>>(new Map());
-  const kanbanScrollRef = useRef<HTMLDivElement>(null);
+  const touchStartX = useRef<number | null>(null);
   const supabaseRef = useRef(createClient());
 
   const fetchData = useCallback(async () => {
@@ -142,42 +142,22 @@ export default function LeadsPageClient() {
     return counts;
   }, [filteredLeads]);
 
-  const scrollToStage = useCallback((index: number) => {
-    const clamped = Math.max(0, Math.min(index, LEAD_STATUSES.length - 1));
-    const status = LEAD_STATUSES[clamped]?.value;
-    if (!status) return;
-
-    const column = columnRefs.current.get(status);
-    column?.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
-    setActiveStageIndex(clamped);
+  const selectStage = useCallback((index: number) => {
+    setActiveStageIndex(Math.max(0, Math.min(index, LEAD_STATUSES.length - 1)));
   }, []);
 
-  useEffect(() => {
-    const root = kanbanScrollRef.current;
-    if (!root || typeof IntersectionObserver === "undefined") return;
+  function handlePipelineTouchStart(clientX: number) {
+    touchStartX.current = clientX;
+  }
 
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const visible = entries
-          .filter((e) => e.isIntersecting)
-          .sort((a, b) => b.intersectionRatio - a.intersectionRatio);
-        const top = visible[0];
-        if (!top) return;
-        const status = top.target.getAttribute("data-status") as LeadStatus | null;
-        if (!status) return;
-        const index = LEAD_STATUSES.findIndex((s) => s.value === status);
-        if (index >= 0) setActiveStageIndex(index);
-      },
-      { root, threshold: [0.35, 0.5, 0.65] }
-    );
-
-    for (const status of LEAD_STATUSES) {
-      const el = columnRefs.current.get(status.value);
-      if (el) observer.observe(el);
-    }
-
-    return () => observer.disconnect();
-  }, [loading, filteredLeads.length]);
+  function handlePipelineTouchEnd(clientX: number) {
+    const start = touchStartX.current;
+    touchStartX.current = null;
+    if (start === null) return;
+    const delta = clientX - start;
+    if (delta > 60) selectStage(activeStageIndex - 1);
+    else if (delta < -60) selectStage(activeStageIndex + 1);
+  }
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
@@ -248,21 +228,23 @@ export default function LeadsPageClient() {
         }
       />
 
-      <PipelineSearch
-        value={search}
-        onChange={setSearch}
-        resultCount={filteredLeads.length}
-        totalCount={leads.length}
-      />
+      <div className="space-y-3">
+        <PipelineSearch
+          value={search}
+          onChange={setSearch}
+          resultCount={filteredLeads.length}
+          totalCount={leads.length}
+        />
 
-      <PipelineStageNav
-        stages={LEAD_STATUSES}
-        counts={stageCounts}
-        activeIndex={activeStageIndex}
-        onSelect={scrollToStage}
-        onPrev={() => scrollToStage(activeStageIndex - 1)}
-        onNext={() => scrollToStage(activeStageIndex + 1)}
-      />
+        <PipelineStageNav
+          stages={LEAD_STATUSES}
+          counts={stageCounts}
+          activeIndex={activeStageIndex}
+          onSelect={selectStage}
+          onPrev={() => selectStage(activeStageIndex - 1)}
+          onNext={() => selectStage(activeStageIndex + 1)}
+        />
+      </div>
 
       <DndContext
         sensors={sensors}
@@ -271,18 +253,17 @@ export default function LeadsPageClient() {
         onDragEnd={handleDragEnd}
       >
         <div
-          ref={kanbanScrollRef}
-          className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-2 lg:-mx-0 lg:grid lg:grid-cols-3 lg:gap-4 lg:overflow-visible lg:px-0 lg:pb-0 xl:grid-cols-6"
+          className="lg:-mx-0 lg:grid lg:grid-cols-3 lg:gap-4 xl:grid-cols-6"
+          onTouchStart={(e) => handlePipelineTouchStart(e.changedTouches[0]?.clientX ?? 0)}
+          onTouchEnd={(e) => handlePipelineTouchEnd(e.changedTouches[0]?.clientX ?? 0)}
         >
-          {LEAD_STATUSES.map((status) => (
+          {LEAD_STATUSES.map((status, index) => (
             <div
               key={status.value}
-              ref={(el) => {
-                if (el) columnRefs.current.set(status.value, el);
-                else columnRefs.current.delete(status.value);
-              }}
-              data-status={status.value}
-              className="w-[min(85vw,260px)] shrink-0 snap-center lg:w-auto lg:shrink"
+              className={cn(
+                "w-full",
+                index !== activeStageIndex && "hidden lg:block"
+              )}
             >
               <KanbanColumn
                 status={status}
