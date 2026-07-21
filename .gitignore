@@ -45,3 +45,4 @@ next-env.d.ts
 # whatsapp listener runtime (local auth + extracted logs)
 .wwebjs_cache/
 /data/
+.vercel

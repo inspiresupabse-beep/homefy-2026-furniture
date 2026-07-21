@@ -90,7 +90,7 @@ export async function createTeamUser(formData: FormData) {
       user_metadata: { full_name: fullName, role: "sales_agent" },
     });
 
-    if (error) return { error: formatActionError(error.message) };
+    if (error) return { error: formatActionError(error) };
     if (!data.user) return { error: "User was not created. Please try again." };
 
     const profileError = await applyProfileRole(
@@ -158,7 +158,7 @@ export async function updateTeamUser(formData: FormData) {
       updatePayload
     );
 
-    if (authError) return { error: formatActionError(authError.message) };
+    if (authError) return { error: formatActionError(authError) };
 
     const profileError = await applyProfileRole(
       admin,
@@ -188,7 +188,7 @@ export async function deleteTeamUser(userId: string) {
   try {
     const admin = createAdminClient();
     const { error } = await admin.auth.admin.deleteUser(userId);
-    if (error) return { error: formatActionError(error.message) };
+    if (error) return { error: formatActionError(error) };
 
     revalidatePath("/users");
     return { success: true };
