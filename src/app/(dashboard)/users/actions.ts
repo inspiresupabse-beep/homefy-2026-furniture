@@ -40,16 +40,26 @@ async function applyProfileRole(
 
   const { error: profileError } = await admin
     .from("profiles")
-    .update({ full_name: fullName, role, email, staff_power: power })
-    .eq("id", userId);
+    .upsert(
+      {
+        id: userId,
+        full_name: fullName,
+        role,
+        email,
+        staff_power: power,
+      },
+      { onConflict: "id" }
+    );
 
   if (!profileError) return null;
 
-  if (isRoleEnumError(profileError.message)) {
-    return formatActionError(profileError.message);
+  const msg = profileError.message || profileError.details || JSON.stringify(profileError);
+
+  if (isRoleEnumError(msg)) {
+    return formatActionError(msg);
   }
 
-  return profileError.message;
+  return formatActionError(msg);
 }
 
 export async function createTeamUser(formData: FormData) {
