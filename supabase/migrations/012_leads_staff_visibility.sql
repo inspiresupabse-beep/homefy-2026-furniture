@@ -1,6 +1,9 @@
 -- Staff see only their assigned leads; admins see all leads.
+-- Safe to re-run.
 
 DROP POLICY IF EXISTS "Authenticated users can view leads" ON leads;
+DROP POLICY IF EXISTS "Admins can view all leads" ON leads;
+DROP POLICY IF EXISTS "Staff can view assigned leads" ON leads;
 
 CREATE POLICY "Admins can view all leads" ON leads
   FOR SELECT TO authenticated
