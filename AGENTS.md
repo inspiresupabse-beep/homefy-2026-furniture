@@ -15,9 +15,10 @@ Always commit, push, and deploy using the **Homefy project accounts** below. Do 
 | **Git branch** | `master` |
 | **Live site** | `https://furniture.teamhomefy.in` |
 | **Vercel project** | `homefy-2026-axys` |
-| **Vercel project ID** | `prj_7Ye9wpI5A29sfz8lpYQvhOy6AuvM` |
 | **Vercel team ID** | `team_XhEbXsVrI7jEkzMZlbcMZO03` |
 | **Supabase project** | `ulyqbffnltkscbyjdjbj` (Homefy-furniture-crm) |
+
+Note: If the old project ID is missing in Vercel, GitHub Actions will recreate/link `homefy-2026-axys` on deploy. Re-add env vars in Vercel and attach domain `furniture.teamhomefy.in`.
 
 Deploy via push to `master` (GitHub Actions → Vercel) or Vercel dashboard for **homefy-2026-axys** only. Never deploy to unrelated Vercel projects (e.g. jokerly-music, trading-app).
 <!-- END:homefy-deploy-accounts -->
