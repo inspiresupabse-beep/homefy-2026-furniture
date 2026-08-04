@@ -76,10 +76,12 @@ export default function LoginPageClient() {
 
     setLoading(false);
 
-    if (result.error) {
+    if ("error" in result && result.error) {
       setError(result.error);
       return;
     }
+
+    if (!("success" in result) || !result.success) return;
 
     setOtpTarget(
       result.channel === "email"

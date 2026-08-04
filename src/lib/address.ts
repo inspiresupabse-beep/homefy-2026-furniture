@@ -67,7 +67,14 @@ export function formatLeadAddress(address: Partial<LeadAddress>): string | null 
   return parts.join("\n") || null;
 }
 
-export function leadAddressFromLead(lead: Partial<LeadAddress>): LeadAddress {
+export function leadAddressFromLead(lead: {
+  address_line1?: string | null;
+  address_line2?: string | null;
+  city?: string | null;
+  district?: string | null;
+  state?: string | null;
+  pin_code?: string | null;
+}): LeadAddress {
   return {
     address_line1: lead.address_line1 ?? "",
     address_line2: lead.address_line2 ?? "",
