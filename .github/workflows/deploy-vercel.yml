@@ -1,8 +1,5 @@
 name: Deploy to Vercel
 
-# Homefy — team shanid77shan-2820's projects
-# Project name: homefy-2026-axys (furniture.teamhomefy.in)
-
 on:
   push:
     branches:
@@ -11,7 +8,6 @@ on:
 
 env:
   VERCEL_ORG_ID: team_XhEbXsVrI7jEkzMZlbcMZO03
-  VERCEL_PROJECT_NAME: homefy-2026-axys
 
 jobs:
   deploy:
@@ -32,22 +28,7 @@ jobs:
       - name: Install Vercel CLI
         run: npm install -g vercel@latest
 
-      - name: Link or create Vercel project
-        run: vercel link --yes --project=${{ env.VERCEL_PROJECT_NAME }} --token=${{ secrets.VERCEL_TOKEN }}
-        env:
-          VERCEL_ORG_ID: ${{ env.VERCEL_ORG_ID }}
-
-      - name: Pull Vercel settings
-        run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
-        env:
-          VERCEL_ORG_ID: ${{ env.VERCEL_ORG_ID }}
-
-      - name: Build
-        run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
-        env:
-          VERCEL_ORG_ID: ${{ env.VERCEL_ORG_ID }}
-
       - name: Deploy to production
-        run: vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}
+        run: vercel deploy --prod --yes --name homefy-2026-axys --token=${{ secrets.VERCEL_TOKEN }}
         env:
           VERCEL_ORG_ID: ${{ env.VERCEL_ORG_ID }}
