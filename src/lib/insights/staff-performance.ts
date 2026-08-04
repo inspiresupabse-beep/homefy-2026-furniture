@@ -50,7 +50,9 @@ export function buildStaffPerformanceRows(
         if (lead.status === "converted") conversions += 1;
         if (lead.visit_status === "completed") {
           if (lead.interaction_type === "site") siteVisits += 1;
-          if (lead.interaction_type === "shop") shopVisits += 1;
+          if (lead.interaction_type === "shop" || lead.interaction_type === "direct_shop_visit") {
+            shopVisits += 1;
+          }
         }
       }
 

@@ -46,7 +46,7 @@ export default function LoginPageClient() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-stone-100 via-amber-50 to-stone-200 p-4 sm:p-6">
+    <div className="flex min-h-[100dvh] items-center justify-center bg-gradient-to-br from-stone-100 via-amber-50 to-stone-200 p-4 sm:p-6">
       <Card className="w-full max-w-md shadow-lg">
         <CardHeader>
           <div className="flex items-center gap-3">

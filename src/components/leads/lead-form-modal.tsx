@@ -7,11 +7,12 @@ import { Input, Label, Select, Textarea } from "@/components/ui/input";
 import { LeadAddressFields } from "@/components/leads/lead-address-fields";
 import { EMPTY_LEAD_ADDRESS } from "@/lib/address";
 import { defaultVisitStatusForInteraction, requiresVisitCompletion } from "@/lib/leads";
+import { InteractionTypeField } from "@/components/leads/interaction-type-field";
+import { ModalOverlay } from "@/components/ui/modal-overlay";
+import type { LeadInteractionType } from "@/lib/leads/interaction-types";
 import {
-  INTERACTION_TYPES,
   LEAD_TEMPERATURES,
   VISIT_STATUSES,
-  type InteractionType,
   type LeadTemperature,
   type Profile,
   type VisitStatus,
@@ -20,11 +21,19 @@ import { X } from "lucide-react";
 
 interface LeadFormModalProps {
   agents: Profile[];
+  interactionTypes: LeadInteractionType[];
+  onInteractionTypesChange: (types: LeadInteractionType[]) => void;
   onClose: () => void;
   onSaved: () => void;
 }
 
-export function LeadFormModal({ agents, onClose, onSaved }: LeadFormModalProps) {
+export function LeadFormModal({
+  agents,
+  interactionTypes,
+  onInteractionTypesChange,
+  onClose,
+  onSaved,
+}: LeadFormModalProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [form, setForm] = useState({
@@ -37,19 +46,19 @@ export function LeadFormModal({ agents, onClose, onSaved }: LeadFormModalProps) 
     assigned_staff: "",
     temperature: "warm" as LeadTemperature,
     conversion_probability: 30,
-    interaction_type: "phone" as InteractionType,
+    interaction_type: "whatsapp",
     visit_status: "not_applicable" as VisitStatus,
     site_visit_date: "",
     narration: "",
     address: { ...EMPTY_LEAD_ADDRESS },
   });
 
-  function setInteraction(type: InteractionType) {
+  function setInteraction(type: string, requiresVisit: boolean) {
     setForm((prev) => ({
       ...prev,
       interaction_type: type,
-      visit_status: requiresVisitCompletion(type)
-        ? defaultVisitStatusForInteraction(type)
+      visit_status: requiresVisit
+        ? defaultVisitStatusForInteraction(type, interactionTypes)
         : "not_applicable",
     }));
   }
@@ -105,15 +114,14 @@ export function LeadFormModal({ agents, onClose, onSaved }: LeadFormModalProps) 
   }
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-end justify-center overflow-y-auto bg-black/40 p-0 sm:items-center sm:p-4">
-      <div className="max-h-[92dvh] w-full overflow-y-auto rounded-t-xl bg-white shadow-xl sm:max-w-lg sm:rounded-xl">
-        <div className="flex items-center justify-between border-b border-stone-100 px-6 py-4">
+    <ModalOverlay onClose={onClose} panelClassName="sm:max-w-lg">
+        <div className="flex items-center justify-between border-b border-stone-100 px-4 py-4 sm:px-6">
           <h2 className="text-lg font-semibold text-stone-900">New Lead</h2>
           <button onClick={onClose} className="text-stone-400 hover:text-stone-600">
             <X className="h-5 w-5" />
           </button>
         </div>
-        <form onSubmit={handleSubmit} className="space-y-4 p-6">
+        <form onSubmit={handleSubmit} className="space-y-4 p-4 sm:p-6">
           <div>
             <Label>Customer Name *</Label>
             <Input
@@ -145,17 +153,12 @@ export function LeadFormModal({ agents, onClose, onSaved }: LeadFormModalProps) 
             onChange={(address) => setForm({ ...form, address })}
           />
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div>
-              <Label>Interaction type</Label>
-              <Select
-                value={form.interaction_type}
-                onChange={(e) => setInteraction(e.target.value as InteractionType)}
-              >
-                {INTERACTION_TYPES.map(({ value, label, icon }) => (
-                  <option key={value} value={value}>{icon} {label}</option>
-                ))}
-              </Select>
-            </div>
+            <InteractionTypeField
+              value={form.interaction_type}
+              types={interactionTypes}
+              onChange={setInteraction}
+              onTypesChange={onInteractionTypesChange}
+            />
             <div>
               <Label>Visit status</Label>
               <Select
@@ -163,7 +166,7 @@ export function LeadFormModal({ agents, onClose, onSaved }: LeadFormModalProps) 
                 onChange={(e) =>
                   setForm({ ...form, visit_status: e.target.value as VisitStatus })
                 }
-                disabled={!requiresVisitCompletion(form.interaction_type)}
+                disabled={!requiresVisitCompletion(form.interaction_type, interactionTypes)}
               >
                 {VISIT_STATUSES.map(({ value, label }) => (
                   <option key={value} value={value}>{label}</option>
@@ -246,7 +249,6 @@ export function LeadFormModal({ agents, onClose, onSaved }: LeadFormModalProps) 
             </Button>
           </div>
         </form>
-      </div>
-    </div>
+    </ModalOverlay>
   );
 }

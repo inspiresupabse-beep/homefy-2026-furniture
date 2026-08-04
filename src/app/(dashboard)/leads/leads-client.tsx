@@ -23,6 +23,12 @@ import { PipelineStageNav } from "@/components/leads/pipeline-stage-nav";
 import { PageHeader } from "@/components/layout/page-header";
 import { STAFF_ROLES } from "@/lib/roles";
 import { normalizeLead } from "@/lib/leads/schema";
+import {
+  DEFAULT_INTERACTION_TYPES,
+  mapInteractionTypeRows,
+  type LeadInteractionType,
+} from "@/lib/leads/interaction-types";
+import { InteractionTypesProvider } from "@/lib/leads/interaction-types-context";
 import { OPEN_LEAD_EVENT } from "@/lib/events";
 import { LEAD_STATUSES, type Lead, type LeadStatus, type Profile } from "@/lib/types/database";
 import { cn } from "@/lib/utils";
@@ -36,6 +42,8 @@ export default function LeadsPageClient({ isAdmin }: { isAdmin: boolean }) {
   const [activeLead, setActiveLead] = useState<Lead | null>(null);
   const [detailLead, setDetailLead] = useState<Lead | null>(null);
   const [showForm, setShowForm] = useState(false);
+  const [interactionTypes, setInteractionTypes] =
+    useState<LeadInteractionType[]>(DEFAULT_INTERACTION_TYPES);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [activeStageIndex, setActiveStageIndex] = useState(0);
@@ -44,17 +52,25 @@ export default function LeadsPageClient({ isAdmin }: { isAdmin: boolean }) {
 
   const fetchData = useCallback(async () => {
     const supabase = supabaseRef.current;
-    const [{ data: leadsData }, { data: agentsData }, { data: ordersData }] = await Promise.all([
+    const [{ data: leadsData }, { data: agentsData }, { data: ordersData }, { data: typesData }] =
+      await Promise.all([
       supabase
         .from("leads")
         .select("*, assigned_agent:profiles!leads_assigned_to_fkey(id, full_name, email, role, phone, created_at, updated_at)")
         .order("created_at", { ascending: false }),
       supabase.from("profiles").select("*").in("role", STAFF_ROLES),
       supabase.from("orders").select("id, lead_id").not("lead_id", "is", null),
+      supabase
+        .from("lead_interaction_types")
+        .select("id, value, label, icon, requires_visit, sort_order")
+        .order("sort_order"),
     ]);
 
     setLeads(((leadsData ?? []) as Record<string, unknown>[]).map(normalizeLead));
     setAgents((agentsData as Profile[]) ?? []);
+    if (typesData?.length) {
+      setInteractionTypes(mapInteractionTypeRows(typesData as Record<string, unknown>[]));
+    }
 
     const map = new Map<string, string>();
     for (const o of ordersData ?? []) {
@@ -219,6 +235,7 @@ export default function LeadsPageClient({ isAdmin }: { isAdmin: boolean }) {
   }
 
   return (
+    <InteractionTypesProvider types={interactionTypes}>
     <div className="space-y-4 sm:space-y-6">
       <PageHeader
         title="Leads Pipeline"
@@ -295,6 +312,8 @@ export default function LeadsPageClient({ isAdmin }: { isAdmin: boolean }) {
       {showForm && (
         <LeadFormModal
           agents={agents}
+          interactionTypes={interactionTypes}
+          onInteractionTypesChange={setInteractionTypes}
           onClose={() => setShowForm(false)}
           onSaved={() => {
             setShowForm(false);
@@ -307,11 +326,14 @@ export default function LeadsPageClient({ isAdmin }: { isAdmin: boolean }) {
         <LeadDetailModal
           lead={detailLead}
           agents={agents}
+          interactionTypes={interactionTypes}
+          onInteractionTypesChange={setInteractionTypes}
           orderId={orderByLeadId.get(detailLead.id)}
           onClose={() => setDetailLead(null)}
           onSaved={fetchData}
         />
       )}
     </div>
+    </InteractionTypesProvider>
   );
 }

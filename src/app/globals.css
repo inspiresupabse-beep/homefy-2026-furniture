@@ -13,6 +13,8 @@
 
 html {
   overflow-x: hidden;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
 body {
@@ -20,4 +22,29 @@ body {
   color: var(--foreground);
   overflow-x: hidden;
   -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+/* iOS Safari auto-zooms inputs below 16px — keep touch targets readable on mobile */
+@layer base {
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+    touch-action: manipulation;
+  }
+
+  @media (min-width: 640px) {
+    input,
+    select,
+    textarea {
+      font-size: 0.875rem;
+    }
+  }
+
+  button,
+  a,
+  [role="button"] {
+    touch-action: manipulation;
+  }
 }

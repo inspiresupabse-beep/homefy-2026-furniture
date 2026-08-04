@@ -47,6 +47,7 @@ export function UsersList({
         <CardHeader>
           <h2 className="font-semibold text-stone-900">Team Members</h2>
           <p className="text-sm text-stone-500">{users.length} user(s)</p>
+          <p className="text-xs text-stone-400 md:hidden">Swipe table left/right for all columns</p>
         </CardHeader>
         <CardContent className="p-0">
           {error && (
@@ -55,66 +56,8 @@ export function UsersList({
             </p>
           )}
 
-          {/* Mobile cards */}
-          <div className="space-y-3 p-4 md:hidden">
-            {users.map((user) => (
-              <div
-                key={user.id}
-                className="rounded-lg border border-stone-200 bg-stone-50/50 p-4"
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <p className="truncate font-medium text-stone-900">{user.full_name}</p>
-                    <p className="truncate text-sm text-stone-500">{user.email}</p>
-                    {user.phone && (
-                      <p className="truncate text-xs text-stone-400">
-                        {formatPhoneDisplay(user.phone)}
-                      </p>
-                    )}
-                  </div>
-                  <span className="shrink-0 rounded-full bg-white px-2 py-0.5 text-xs ring-1 ring-stone-200">
-                    {formatRole(user.role)}
-                  </span>
-                </div>
-                <p className="mt-1 text-xs text-amber-700">
-                  Power: {formatStaffPower(getStaffPower(user))}
-                </p>
-                <div className="mt-3 flex items-center justify-between">
-                  <p className="text-xs text-stone-400">
-                    Joined {new Date(user.created_at).toLocaleDateString("en-IN")}
-                  </p>
-                  <div className="flex gap-1">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setEditingUser(user)}
-                      title="Edit user"
-                    >
-                      <Pencil className="h-4 w-4 text-stone-500" />
-                    </Button>
-                    {user.id !== currentUserId && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleDelete(user)}
-                        disabled={deletingId === user.id}
-                        title="Delete user"
-                      >
-                        <Trash2 className="h-4 w-4 text-red-500" />
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              </div>
-            ))}
-            {users.length === 0 && (
-              <p className="py-8 text-center text-sm text-stone-400">No users yet</p>
-            )}
-          </div>
-
-          {/* Desktop table */}
-          <div className="hidden overflow-x-auto md:block">
-            <table className="w-full min-w-[640px] text-sm">
+          <div className="overflow-x-auto overscroll-x-contain [-webkit-overflow-scrolling:touch]">
+            <table className="w-full min-w-[720px] text-sm">
               <thead>
                 <tr className="border-b border-stone-100 bg-stone-50 text-left text-stone-500">
                   <th className="px-4 py-3 font-medium lg:px-6">Name</th>
@@ -123,33 +66,35 @@ export function UsersList({
                   <th className="px-4 py-3 font-medium lg:px-6">Role</th>
                   <th className="px-4 py-3 font-medium lg:px-6">Power</th>
                   <th className="px-4 py-3 font-medium lg:px-6">Joined</th>
-                  <th className="px-4 py-3 text-right font-medium lg:px-6">Actions</th>
+                  <th className="sticky right-0 bg-stone-50 px-4 py-3 text-right font-medium shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.08)] lg:px-6">
+                    Actions
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 {users.map((user) => (
-                  <tr key={user.id} className="border-b border-stone-50 hover:bg-stone-50/50">
+                  <tr key={user.id} className="group border-b border-stone-50 hover:bg-stone-50/50">
                     <td className="px-4 py-4 font-medium text-stone-900 lg:px-6">
                       {user.full_name}
                     </td>
                     <td className="px-4 py-4 text-stone-600 lg:px-6">{user.email}</td>
-                    <td className="px-4 py-4 text-stone-600 lg:px-6">
+                    <td className="whitespace-nowrap px-4 py-4 text-stone-600 lg:px-6">
                       {user.phone ? formatPhoneDisplay(user.phone) : "—"}
                     </td>
-                    <td className="px-4 py-4 lg:px-6">
+                    <td className="whitespace-nowrap px-4 py-4 lg:px-6">
                       <span className="rounded-full bg-stone-100 px-2.5 py-0.5 text-xs">
                         {formatRole(user.role)}
                       </span>
                     </td>
-                    <td className="px-4 py-4 lg:px-6">
+                    <td className="whitespace-nowrap px-4 py-4 lg:px-6">
                       <span className="rounded-full bg-amber-50 px-2.5 py-0.5 text-xs text-amber-800 ring-1 ring-amber-200">
                         {formatStaffPower(getStaffPower(user))}
                       </span>
                     </td>
-                    <td className="px-4 py-4 text-stone-500 lg:px-6">
+                    <td className="whitespace-nowrap px-4 py-4 text-stone-500 lg:px-6">
                       {new Date(user.created_at).toLocaleDateString("en-IN")}
                     </td>
-                    <td className="px-4 py-4 lg:px-6">
+                    <td className="sticky right-0 bg-white px-4 py-4 shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.08)] group-hover:bg-stone-50/50 lg:px-6">
                       <div className="flex justify-end gap-1">
                         <Button
                           variant="ghost"

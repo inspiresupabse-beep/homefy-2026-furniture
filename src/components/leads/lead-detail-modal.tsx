@@ -16,12 +16,12 @@ import {
   getConvertBlockedReason,
   requiresVisitCompletion,
 } from "@/lib/leads";
+import { InteractionTypeField } from "@/components/leads/interaction-type-field";
+import type { LeadInteractionType } from "@/lib/leads/interaction-types";
 import {
-  INTERACTION_TYPES,
   LEAD_TEMPERATURES,
   VISIT_STATUSES,
   getLeadStatusLabel,
-  type InteractionType,
   type Lead,
   type LeadTemperature,
   type Profile,
@@ -29,12 +29,15 @@ import {
 } from "@/lib/types/database";
 import { LeadRemindersSection } from "@/components/leads/lead-reminders-section";
 import { LeadAddressFields } from "@/components/leads/lead-address-fields";
+import { ModalOverlay } from "@/components/ui/modal-overlay";
 import { formatLeadAddress, leadAddressFromLead } from "@/lib/address";
 import { Phone, MapPin, X, FileText } from "lucide-react";
 
 interface LeadDetailModalProps {
   lead: Lead;
   agents: Profile[];
+  interactionTypes: LeadInteractionType[];
+  onInteractionTypesChange: (types: LeadInteractionType[]) => void;
   orderId?: string | null;
   onClose: () => void;
   onSaved: () => void;
@@ -43,6 +46,8 @@ interface LeadDetailModalProps {
 export function LeadDetailModal({
   lead,
   agents,
+  interactionTypes,
+  onInteractionTypesChange,
   orderId,
   onClose,
   onSaved,
@@ -55,9 +60,7 @@ export function LeadDetailModal({
 
   const [temperature, setTemperature] = useState<LeadTemperature>(lead.temperature ?? "warm");
   const [probability, setProbability] = useState(lead.conversion_probability ?? 0);
-  const [interactionType, setInteractionType] = useState<InteractionType>(
-    lead.interaction_type ?? "phone"
-  );
+  const [interactionType, setInteractionType] = useState(lead.interaction_type ?? "whatsapp");
   const [visitStatus, setVisitStatus] = useState<VisitStatus>(
     lead.visit_status ?? "not_applicable"
   );
@@ -79,15 +82,15 @@ export function LeadDetailModal({
     narration: narration || null,
   };
 
-  const canConvert = canConvertLeadToOrder(draftLead);
-  const convertBlockedReason = getConvertBlockedReason(draftLead);
+  const canConvert = canConvertLeadToOrder(draftLead, interactionTypes);
+  const convertBlockedReason = getConvertBlockedReason(draftLead, interactionTypes);
 
-  function handleInteractionChange(value: InteractionType) {
+  function handleInteractionChange(value: string, requiresVisit: boolean) {
     setInteractionType(value);
-    if (!requiresVisitCompletion(value)) {
+    if (!requiresVisit) {
       setVisitStatus("not_applicable");
     } else if (visitStatus === "not_applicable") {
-      setVisitStatus(defaultVisitStatusForInteraction(value));
+      setVisitStatus(defaultVisitStatusForInteraction(value, interactionTypes));
     }
   }
 
@@ -172,8 +175,7 @@ export function LeadDetailModal({
   }
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-end justify-center overflow-y-auto bg-black/40 p-0 sm:items-center sm:p-4">
-      <div className="max-h-[92dvh] w-full overflow-y-auto rounded-t-xl bg-white shadow-xl sm:max-w-xl sm:rounded-xl">
+    <ModalOverlay onClose={onClose} panelClassName="sm:max-w-xl">
         <div className="flex items-center justify-between border-b border-stone-100 px-4 py-4 sm:px-6">
           <div className="min-w-0">
             <h2 className="truncate text-lg font-semibold text-stone-900">
@@ -240,27 +242,20 @@ export function LeadDetailModal({
           </div>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div>
-              <Label htmlFor="interaction">Interaction type</Label>
-              <Select
-                id="interaction"
-                value={interactionType}
-                onChange={(e) => handleInteractionChange(e.target.value as InteractionType)}
-              >
-                {INTERACTION_TYPES.map(({ value, label, icon }) => (
-                  <option key={value} value={value}>
-                    {icon} {label}
-                  </option>
-                ))}
-              </Select>
-            </div>
+            <InteractionTypeField
+              id="interaction"
+              value={interactionType}
+              types={interactionTypes}
+              onChange={handleInteractionChange}
+              onTypesChange={onInteractionTypesChange}
+            />
             <div>
               <Label htmlFor="visit_status">Visit status</Label>
               <Select
                 id="visit_status"
                 value={visitStatus}
                 onChange={(e) => setVisitStatus(e.target.value as VisitStatus)}
-                disabled={!requiresVisitCompletion(interactionType)}
+                disabled={!requiresVisitCompletion(interactionType, interactionTypes)}
               >
                 {VISIT_STATUSES.map(({ value, label }) => (
                   <option key={value} value={value}>{label}</option>
@@ -382,7 +377,6 @@ export function LeadDetailModal({
             </div>
           </div>
         </div>
-      </div>
-    </div>
+    </ModalOverlay>
   );
 }

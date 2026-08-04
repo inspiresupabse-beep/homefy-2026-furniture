@@ -1,12 +1,11 @@
 import { cn } from "@/lib/utils";
+import { getInteractionIcon } from "@/lib/leads";
+import { useInteractionTypes } from "@/lib/leads/interaction-types-context";
+import { getInteractionMeta } from "@/lib/leads/interaction-types";
 import {
   getLeadTemperatureConfig,
-  getInteractionLabel,
-  INTERACTION_TYPES,
-  type InteractionType,
   type LeadTemperature,
 } from "@/lib/types/database";
-import { getInteractionIcon } from "@/lib/leads";
 
 export function TemperatureBadge({
   temperature,
@@ -35,12 +34,14 @@ export function InteractionBadge({
   showLabel = false,
   className,
 }: {
-  interaction: InteractionType;
+  interaction: string;
   showLabel?: boolean;
   className?: string;
 }) {
-  const icon = getInteractionIcon(interaction);
-  const label = getInteractionLabel(interaction);
+  const types = useInteractionTypes();
+  const meta = getInteractionMeta(interaction, types);
+  const icon = getInteractionIcon(interaction, types);
+  const label = meta.label;
 
   return (
     <span
@@ -92,5 +93,3 @@ export function ProbabilityBar({
     </div>
   );
 }
-
-export { INTERACTION_TYPES };

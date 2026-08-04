@@ -13,6 +13,7 @@ import { useRouter, usePathname } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { dispatchOpenLead } from "@/lib/events";
 import { playReminderSound } from "@/lib/notifications/sound";
+import { useBodyScrollLock } from "@/lib/use-body-scroll-lock";
 import type { LeadReminder } from "@/lib/types/database";
 import { Bell, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -46,6 +47,8 @@ export function NotificationProvider({
 
   const [reminders, setReminders] = useState<LeadReminder[]>([]);
   const [activePopup, setActivePopup] = useState<LeadReminder | null>(null);
+
+  useBodyScrollLock(!!activePopup);
 
   const refresh = useCallback(async () => {
     const { data } = await supabaseRef.current
@@ -146,7 +149,7 @@ export function NotificationProvider({
       {children}
       {activePopup && (
         <div
-          className="fixed inset-0 z-[200] flex items-center justify-center bg-black/50 p-4"
+          className="fixed inset-0 z-[200] flex items-center justify-center overscroll-contain bg-black/50 p-4 supports-[height:100dvh]:min-h-[100dvh]"
           role="dialog"
           aria-modal="true"
         >

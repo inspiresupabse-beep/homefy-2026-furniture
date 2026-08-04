@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { updateTeamUser } from "@/app/(dashboard)/users/actions";
 import { Button } from "@/components/ui/button";
+import { ModalOverlay } from "@/components/ui/modal-overlay";
 import { Input, Label, Select } from "@/components/ui/input";
 import { formatActionError } from "@/lib/action-error";
 import { USER_ROLES } from "@/lib/roles";
@@ -51,15 +52,14 @@ export function EditUserModal({
   }
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-end justify-center overflow-y-auto bg-black/40 p-0 sm:items-center sm:p-4">
-      <div className="max-h-[92dvh] w-full overflow-y-auto rounded-t-xl bg-white shadow-xl sm:max-w-lg sm:rounded-xl">
-        <div className="flex items-center justify-between border-b border-stone-100 px-6 py-4">
+    <ModalOverlay onClose={onClose}>
+        <div className="flex items-center justify-between border-b border-stone-100 px-4 py-4 sm:px-6">
           <h2 className="text-lg font-semibold text-stone-900">Edit User</h2>
           <button onClick={onClose} className="text-stone-400 hover:text-stone-600">
             <X className="h-5 w-5" />
           </button>
         </div>
-        <form onSubmit={handleSubmit} className="space-y-4 p-6">
+        <form onSubmit={handleSubmit} className="space-y-4 p-4 sm:p-6">
           <div>
             <Label htmlFor="edit_full_name">Full Name</Label>
             <Input
@@ -144,7 +144,6 @@ export function EditUserModal({
             </Button>
           </div>
         </form>
-      </div>
-    </div>
+    </ModalOverlay>
   );
 }

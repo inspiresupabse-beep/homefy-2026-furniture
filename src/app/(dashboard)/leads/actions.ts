@@ -31,7 +31,7 @@ export async function createLead(input: CreateLeadInput): Promise<LeadActionResu
     created_by: user.id,
     temperature: input.temperature ?? "warm",
     conversion_probability: input.conversion_probability ?? 0,
-    interaction_type: input.interaction_type ?? "phone",
+    interaction_type: input.interaction_type ?? "whatsapp",
     visit_status: input.visit_status ?? "not_applicable",
     site_visit_date: input.site_visit_date || null,
     narration: input.narration || null,

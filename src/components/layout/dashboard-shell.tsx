@@ -36,7 +36,7 @@ export function DashboardShell({
   return (
     <NotificationProvider userId={profile.id}>
       <NavigationProgress />
-      <div className="flex min-h-screen bg-stone-50">
+      <div className="flex min-h-[100dvh] bg-stone-50">
       {mobileOpen && (
         <button
           type="button"

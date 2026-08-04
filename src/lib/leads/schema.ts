@@ -34,7 +34,7 @@ export function normalizeLead(raw: Record<string, unknown>): Lead {
     status: normalizeLeadStatus(String(raw.status ?? "new_inquiry")),
     temperature: (raw.temperature as Lead["temperature"]) ?? "warm",
     conversion_probability: Number(raw.conversion_probability ?? 0),
-    interaction_type: (raw.interaction_type as Lead["interaction_type"]) ?? "phone",
+    interaction_type: (raw.interaction_type as Lead["interaction_type"]) ?? "whatsapp",
     visit_status: (raw.visit_status as Lead["visit_status"]) ?? "not_applicable",
     site_visit_date: (raw.site_visit_date as string | null) ?? null,
     assigned_staff: (raw.assigned_staff as string | null) ?? null,

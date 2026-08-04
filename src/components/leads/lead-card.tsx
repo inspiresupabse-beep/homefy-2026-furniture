@@ -32,7 +32,7 @@ export function LeadCard({
   const router = useRouter();
   const temperature = lead.temperature ?? "warm";
   const probability = lead.conversion_probability ?? 0;
-  const interaction = lead.interaction_type ?? "phone";
+  const interaction = lead.interaction_type ?? "whatsapp";
   const isConverted = lead.status === "converted";
 
   return (

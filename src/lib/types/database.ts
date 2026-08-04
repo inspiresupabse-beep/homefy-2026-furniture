@@ -1,6 +1,12 @@
+import {
+  DEFAULT_INTERACTION_TYPES,
+  getInteractionMeta,
+  mergeInteractionTypeOptions,
+} from "@/lib/leads/interaction-types";
+
 export type LeadTemperature = "hot" | "warm" | "cold";
 
-export type InteractionType = "site" | "shop" | "phone" | "online";
+export type InteractionType = string;
 
 export type VisitStatus =
   | "pending"
@@ -186,16 +192,11 @@ export const LEAD_TEMPERATURES: {
   { value: "cold", label: "Cold", badge: "bg-blue-100 text-blue-800 border-blue-200", bar: "bg-blue-400" },
 ];
 
-export const INTERACTION_TYPES: {
-  value: InteractionType;
-  label: string;
-  icon: string;
-}[] = [
-  { value: "site", label: "Site Visit", icon: "🏠" },
-  { value: "shop", label: "Shop Visit", icon: "🛒" },
-  { value: "phone", label: "Phone", icon: "📞" },
-  { value: "online", label: "Online", icon: "💻" },
-];
+export const INTERACTION_TYPES = DEFAULT_INTERACTION_TYPES.map(({ value, label, icon }) => ({
+  value,
+  label,
+  icon,
+}));
 
 export const VISIT_STATUSES: { value: VisitStatus; label: string }[] = [
   { value: "pending", label: "Pending" },
@@ -222,7 +223,13 @@ export function getLeadTemperatureConfig(temperature: LeadTemperature) {
 }
 
 export function getInteractionLabel(type: InteractionType): string {
-  return INTERACTION_TYPES.find((t) => t.value === type)?.label ?? type;
+  return getInteractionMeta(type, DEFAULT_INTERACTION_TYPES).label;
+}
+
+export function getInteractionTypeOptions(current?: InteractionType) {
+  return mergeInteractionTypeOptions(DEFAULT_INTERACTION_TYPES, current).map(
+    ({ value, label, icon }) => ({ value, label, icon })
+  );
 }
 
 export function getVisitStatusLabel(status: VisitStatus): string {
