@@ -11,6 +11,67 @@ import { formatStaffPower, getStaffPower } from "@/lib/permissions";
 import { formatPhoneDisplay } from "@/lib/phone";
 import type { Profile } from "@/lib/types/database";
 
+function UserRowActions({
+  user,
+  currentUserId,
+  switchingId,
+  deletingId,
+  onSwitch,
+  onEdit,
+  onDelete,
+}: {
+  user: Profile;
+  currentUserId: string;
+  switchingId: string | null;
+  deletingId: string | null;
+  onSwitch: (user: Profile) => void;
+  onEdit: (user: Profile) => void;
+  onDelete: (user: Profile) => void;
+}) {
+  const isSelf = user.id === currentUserId;
+  const canSwitch = user.role !== "admin" && !isSelf;
+
+  return (
+    <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
+      {canSwitch && (
+        <Button
+          type="button"
+          size="sm"
+          className="gap-1.5 bg-stone-800 text-white hover:bg-stone-900"
+          onClick={() => onSwitch(user)}
+          disabled={switchingId === user.id}
+        >
+          <LogIn className="h-3.5 w-3.5 shrink-0" />
+          {switchingId === user.id ? "Switching..." : "Switch"}
+        </Button>
+      )}
+      <Button
+        type="button"
+        size="sm"
+        variant="secondary"
+        className="gap-1.5 border-stone-300 bg-stone-100 text-stone-800 hover:bg-stone-200"
+        onClick={() => onEdit(user)}
+      >
+        <Pencil className="h-3.5 w-3.5 shrink-0" />
+        Edit
+      </Button>
+      {!isSelf && (
+        <Button
+          type="button"
+          size="sm"
+          variant="danger"
+          className="gap-1.5"
+          onClick={() => onDelete(user)}
+          disabled={deletingId === user.id}
+        >
+          <Trash2 className="h-3.5 w-3.5 shrink-0" />
+          {deletingId === user.id ? "Deleting..." : "Delete"}
+        </Button>
+      )}
+    </div>
+  );
+}
+
 export function UsersList({
   users,
   currentUserId,
@@ -68,7 +129,6 @@ export function UsersList({
         <CardHeader>
           <h2 className="font-semibold text-stone-900">Team Members</h2>
           <p className="text-sm text-stone-500">{users.length} user(s)</p>
-          <p className="text-xs text-stone-400 md:hidden">Swipe table left/right for all columns</p>
         </CardHeader>
         <CardContent className="p-0">
           {error && (
@@ -77,92 +137,51 @@ export function UsersList({
             </p>
           )}
 
-          <div className="overflow-x-auto overscroll-x-contain [-webkit-overflow-scrolling:touch]">
-            <table className="w-full min-w-[860px] text-sm">
-              <thead>
-                <tr className="border-b border-stone-100 bg-stone-50 text-left text-stone-500">
-                  <th className="px-4 py-3 font-medium lg:px-6">Name</th>
-                  <th className="px-4 py-3 font-medium lg:px-6">Email</th>
-                  <th className="px-4 py-3 font-medium lg:px-6">Phone</th>
-                  <th className="px-4 py-3 font-medium lg:px-6">Role</th>
-                  <th className="px-4 py-3 font-medium lg:px-6">Power</th>
-                  <th className="px-4 py-3 font-medium lg:px-6">Joined</th>
-                  <th className="sticky right-0 bg-stone-50 px-4 py-3 text-right font-medium shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.08)] lg:px-6">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {users.map((user) => (
-                  <tr key={user.id} className="group border-b border-stone-50 hover:bg-stone-50/50">
-                    <td className="px-4 py-4 font-medium text-stone-900 lg:px-6">
-                      {user.full_name}
-                    </td>
-                    <td className="px-4 py-4 text-stone-600 lg:px-6">{user.email}</td>
-                    <td className="whitespace-nowrap px-4 py-4 text-stone-600 lg:px-6">
-                      {user.phone ? formatPhoneDisplay(user.phone) : "—"}
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-4 lg:px-6">
-                      <span className="rounded-full bg-stone-100 px-2.5 py-0.5 text-xs">
-                        {formatRole(user.role)}
-                      </span>
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-4 lg:px-6">
-                      <span className="rounded-full bg-amber-50 px-2.5 py-0.5 text-xs text-amber-800 ring-1 ring-amber-200">
-                        {formatStaffPower(getStaffPower(user))}
-                      </span>
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-4 text-stone-500 lg:px-6">
-                      {new Date(user.created_at).toLocaleDateString("en-IN")}
-                    </td>
-                    <td className="sticky right-0 min-w-[168px] bg-white px-4 py-4 shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.08)] group-hover:bg-stone-50/50 lg:px-6">
-                      <div className="flex flex-wrap justify-end gap-1">
-                        {user.role !== "admin" && user.id !== currentUserId && (
-                          <Button
-                            variant="secondary"
-                            size="sm"
-                            className="gap-1 border-amber-200 bg-amber-50 text-amber-900 hover:bg-amber-100"
-                            onClick={() => handleSwitch(user)}
-                            disabled={switchingId === user.id}
-                            title={`Switch to ${user.full_name}`}
-                          >
-                            <LogIn className="h-3.5 w-3.5 shrink-0" />
-                            {switchingId === user.id ? "..." : "Switch"}
-                          </Button>
+          {users.length === 0 ? (
+            <p className="px-6 py-12 text-center text-sm text-stone-400">No users yet</p>
+          ) : (
+            <ul className="divide-y divide-stone-100">
+              {users.map((user) => {
+                const isSelf = user.id === currentUserId;
+                const meta = [
+                  user.email,
+                  user.phone ? formatPhoneDisplay(user.phone) : null,
+                  formatRole(user.role),
+                  formatStaffPower(getStaffPower(user)),
+                  `Joined ${new Date(user.created_at).toLocaleDateString("en-IN")}`,
+                ]
+                  .filter(Boolean)
+                  .join(" · ");
+
+                return (
+                  <li
+                    key={user.id}
+                    className="flex flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between lg:px-6"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <p className="font-semibold text-stone-900">
+                        {user.full_name}
+                        {isSelf && (
+                          <span className="ml-2 text-sm font-normal text-stone-500">(you)</span>
                         )}
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setEditingUser(user)}
-                          title="Edit user"
-                        >
-                          <Pencil className="h-4 w-4 text-stone-500" />
-                        </Button>
-                        {user.id !== currentUserId && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDelete(user)}
-                            disabled={deletingId === user.id}
-                            title="Delete user"
-                          >
-                            <Trash2 className="h-4 w-4 text-red-500" />
-                          </Button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-                {users.length === 0 && (
-                  <tr>
-                    <td colSpan={7} className="px-6 py-12 text-center text-stone-400">
-                      No users yet
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+                      </p>
+                      <p className="mt-1 text-sm text-stone-500">{meta}</p>
+                    </div>
+
+                    <UserRowActions
+                      user={user}
+                      currentUserId={currentUserId}
+                      switchingId={switchingId}
+                      deletingId={deletingId}
+                      onSwitch={handleSwitch}
+                      onEdit={setEditingUser}
+                      onDelete={handleDelete}
+                    />
+                  </li>
+                );
+              })}
+            </ul>
+          )}
         </CardContent>
       </Card>
 
