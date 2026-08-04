@@ -36,6 +36,7 @@ CREATE POLICY "Admins view all daily reports"
   ON daily_staff_reports FOR SELECT TO authenticated
   USING (is_admin());
 
+DROP TRIGGER IF EXISTS daily_staff_reports_updated_at ON daily_staff_reports;
 CREATE TRIGGER daily_staff_reports_updated_at
   BEFORE UPDATE ON daily_staff_reports
   FOR EACH ROW EXECUTE FUNCTION update_updated_at();
