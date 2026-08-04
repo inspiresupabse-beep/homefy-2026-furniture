@@ -22,3 +22,7 @@ export function formatRole(role: UserRole): string {
 export function isStaffRole(role: UserRole): boolean {
   return STAFF_ROLES.includes(role);
 }
+
+export function isAdminRole(role: UserRole): boolean {
+  return role === "admin";
+}

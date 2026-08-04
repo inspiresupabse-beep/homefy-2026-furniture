@@ -28,7 +28,7 @@ import { LEAD_STATUSES, type Lead, type LeadStatus, type Profile } from "@/lib/t
 import { cn } from "@/lib/utils";
 import { Plus } from "lucide-react";
 
-export default function LeadsPageClient() {
+export default function LeadsPageClient({ isAdmin }: { isAdmin: boolean }) {
   const searchParams = useSearchParams();
   const [leads, setLeads] = useState<Lead[]>([]);
   const [agents, setAgents] = useState<Profile[]>([]);
@@ -234,6 +234,7 @@ export default function LeadsPageClient() {
           onChange={setSearch}
           resultCount={filteredLeads.length}
           totalCount={leads.length}
+          showTotal={isAdmin}
         />
 
         <PipelineStageNav

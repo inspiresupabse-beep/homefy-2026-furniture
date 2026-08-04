@@ -36,8 +36,11 @@ export async function updateSession(request: NextRequest) {
 
   const user = session?.user;
 
-  const isAuthRoute = request.nextUrl.pathname.startsWith("/login");
-  const isPublicRoute = isAuthRoute;
+  const pathname = request.nextUrl.pathname;
+  const isAuthRoute = pathname.startsWith("/login");
+  const isAuthCallback = pathname.startsWith("/auth/callback");
+  const isResetPassword = pathname === "/login/reset-password";
+  const isPublicRoute = isAuthRoute || isAuthCallback;
 
   if (!user && !isPublicRoute) {
     const url = request.nextUrl.clone();
@@ -45,7 +48,7 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  if (user && isAuthRoute) {
+  if (user && isAuthRoute && !isResetPassword) {
     const url = request.nextUrl.clone();
     url.pathname = "/";
     return NextResponse.redirect(url);

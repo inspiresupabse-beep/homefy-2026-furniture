@@ -98,7 +98,7 @@ export default async function DashboardPage() {
       color: "text-emerald-600 bg-emerald-50",
     },
     {
-      label: "Active Leads",
+      label: "My Active Leads",
       value: stats.activeLeads.toString(),
       icon: Users,
       color: "text-blue-600 bg-blue-50",
@@ -145,10 +145,7 @@ export default async function DashboardPage() {
           ))}
         </div>
 
-        <DashboardCharts
-          leadsByAgent={stats.leadsByAgent}
-          salesByMonth={stats.salesByMonth}
-        />
+        <DashboardCharts salesByMonth={stats.salesByMonth} />
       </div>
 
       <aside className="hidden w-full shrink-0 lg:block lg:w-80 xl:w-96">

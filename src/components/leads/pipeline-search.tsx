@@ -8,11 +8,13 @@ export function PipelineSearch({
   onChange,
   resultCount,
   totalCount,
+  showTotal = true,
 }: {
   value: string;
   onChange: (value: string) => void;
   resultCount: number;
   totalCount: number;
+  showTotal?: boolean;
 }) {
   return (
     <div className="relative">
@@ -34,7 +36,11 @@ export function PipelineSearch({
         </button>
       )}
       <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs text-stone-400">
-        {resultCount}/{totalCount}
+        {showTotal
+          ? `${resultCount}/${totalCount}`
+          : resultCount > 0
+            ? `${resultCount} lead${resultCount === 1 ? "" : "s"}`
+            : "No leads"}
       </span>
     </div>
   );
