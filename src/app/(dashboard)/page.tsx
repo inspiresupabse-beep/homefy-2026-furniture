@@ -8,7 +8,9 @@ import { AdminStaffPerformancePanel } from "@/components/dashboard/admin-staff-p
 import { HotLeadsWidget } from "@/components/dashboard/hot-leads-widget";
 import { PageHeader } from "@/components/layout/page-header";
 import { getStaffPerformanceData } from "@/lib/insights/staff-performance.server";
-import { TrendingUp, Users, CreditCard, Package } from "lucide-react";
+import { TrendingUp, Users, CreditCard, Package, ClipboardList } from "lucide-react";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
 import { STAFF_ROLES } from "@/lib/roles";
 import type { DashboardStats } from "@/lib/types/database";
 
@@ -124,6 +126,25 @@ export default async function DashboardPage() {
           title="Dashboard"
           description="Overview of Homefy sales & operations"
         />
+
+        <Card className="border-amber-200 bg-gradient-to-r from-amber-50 to-white">
+          <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-start gap-3">
+              <div className="rounded-xl bg-amber-100 p-2.5 text-amber-800">
+                <ClipboardList className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="font-semibold text-stone-900">Daily Ad Report</p>
+                <p className="text-sm text-stone-600">
+                  Send today&apos;s follow-up summary to boss on WhatsApp
+                </p>
+              </div>
+            </div>
+            <Link href="/daily-report" className="shrink-0">
+              <Button>Open Daily Report</Button>
+            </Link>
+          </CardContent>
+        </Card>
 
         <Suspense fallback={<div className="h-64 animate-pulse rounded-xl bg-stone-100 lg:sticky lg:top-6" />}>
           <HotLeadsWidget />

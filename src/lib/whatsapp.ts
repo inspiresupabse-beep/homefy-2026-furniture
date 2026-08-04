@@ -25,3 +25,25 @@ export function defaultFollowUpMessage(customerName: string, reminderTitle: stri
 export function defaultOrderMessage(customerName: string, orderNumber: string): string {
   return `Hi ${customerName}, this is Homefy about your order ${orderNumber}. Please share if you have any questions.`;
 }
+
+export async function sendMessageViaListener(
+  phone: string,
+  message: string
+): Promise<{ ok: boolean; error?: string }> {
+  const { whatsAppListenerApi } = await import("@/lib/whatsapp-listener-config");
+  const url = whatsAppListenerApi("/api/send");
+  if (!url) return { ok: false, error: "WhatsApp listener not configured" };
+
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ phone, message }),
+    });
+    const data = await res.json();
+    if (!res.ok) return { ok: false, error: data.error || "Send failed" };
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Network error" };
+  }
+}
