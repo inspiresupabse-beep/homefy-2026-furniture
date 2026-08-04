@@ -1,11 +1,20 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
+import { isRedirectError } from "next/dist/client/components/redirect-error";
+import {
+  IMPERSONATION_BACKUP_COOKIE,
+  IMPERSONATION_META_COOKIE,
+} from "@/lib/auth/impersonation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { formatActionError, isRoleEnumError } from "@/lib/action-error";
 import { isValidIndianMobile, toE164Phone } from "@/lib/phone";
 import type { StaffPower, UserRole } from "@/lib/types/database";
+
+const IMPERSONATION_COOKIE_MAX_AGE = 60 * 60 * 8;
 
 async function requireAdminSession() {
   const supabase = await createClient();
@@ -199,6 +208,132 @@ export async function updateTeamUser(formData: FormData) {
     revalidatePath("/users");
     return { success: true };
   } catch (err) {
+    return { error: formatActionError(err) };
+  }
+}
+
+export async function switchToUser(userId: string) {
+  const session = await requireAdminSession();
+  if (session.error) return { error: session.error };
+
+  if (userId === session.user!.id) {
+    return { error: "You are already signed in as this user." };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { session: adminSession },
+  } = await supabase.auth.getSession();
+
+  if (!adminSession) {
+    return { error: "Session expired. Sign in again." };
+  }
+
+  try {
+    const admin = createAdminClient();
+
+    const [{ data: targetProfile }, { data: adminProfile }] = await Promise.all([
+      admin.from("profiles").select("email, full_name, role").eq("id", userId).single(),
+      admin.from("profiles").select("full_name").eq("id", session.user!.id).single(),
+    ]);
+
+    if (!targetProfile?.email) {
+      return { error: "User not found." };
+    }
+
+    if (targetProfile.role === "admin") {
+      return { error: "Cannot switch into another admin account." };
+    }
+
+    const { data: linkData, error: linkError } = await admin.auth.admin.generateLink({
+      type: "magiclink",
+      email: targetProfile.email,
+    });
+
+    const tokenHash = linkData?.properties?.hashed_token;
+    if (linkError || !tokenHash) {
+      return { error: linkError?.message ?? "Could not start user switch." };
+    }
+
+    const cookieStore = await cookies();
+    const cookieOptions = {
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax" as const,
+      path: "/",
+      maxAge: IMPERSONATION_COOKIE_MAX_AGE,
+    };
+
+    cookieStore.set(
+      IMPERSONATION_BACKUP_COOKIE,
+      JSON.stringify({
+        access_token: adminSession.access_token,
+        refresh_token: adminSession.refresh_token,
+        admin_id: session.user!.id,
+      }),
+      { ...cookieOptions, httpOnly: true }
+    );
+
+    cookieStore.set(
+      IMPERSONATION_META_COOKIE,
+      JSON.stringify({
+        adminName: adminProfile?.full_name ?? "Admin",
+        staffName: targetProfile.full_name,
+      }),
+      { ...cookieOptions, httpOnly: false }
+    );
+
+    const { error: verifyError } = await supabase.auth.verifyOtp({
+      token_hash: tokenHash,
+      type: "email",
+    });
+
+    if (verifyError) {
+      cookieStore.delete(IMPERSONATION_BACKUP_COOKIE);
+      cookieStore.delete(IMPERSONATION_META_COOKIE);
+      return { error: verifyError.message };
+    }
+
+    revalidatePath("/", "layout");
+    redirect("/");
+  } catch (err) {
+    if (isRedirectError(err)) throw err;
+    return { error: formatActionError(err) };
+  }
+}
+
+export async function switchBackToAdmin() {
+  const cookieStore = await cookies();
+  const backupRaw = cookieStore.get(IMPERSONATION_BACKUP_COOKIE)?.value;
+
+  if (!backupRaw) {
+    return { error: "No admin session to restore." };
+  }
+
+  let backup: { access_token: string; refresh_token: string };
+  try {
+    backup = JSON.parse(backupRaw);
+  } catch {
+    return { error: "Invalid backup session." };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.auth.setSession({
+    access_token: backup.access_token,
+    refresh_token: backup.refresh_token,
+  });
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  cookieStore.delete(IMPERSONATION_BACKUP_COOKIE);
+  cookieStore.delete(IMPERSONATION_META_COOKIE);
+
+  revalidatePath("/", "layout");
+  try {
+    redirect("/users");
+  } catch (err) {
+    if (isRedirectError(err)) throw err;
     return { error: formatActionError(err) };
   }
 }

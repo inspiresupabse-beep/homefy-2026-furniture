@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { Menu } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { HomefyLogo } from "@/components/layout/homefy-logo";
+import { ImpersonationBanner } from "@/components/layout/impersonation-banner";
 import { NavigationProgress } from "@/components/layout/navigation-progress";
 import { Sidebar } from "@/components/layout/sidebar";
 import { MobileBottomNav } from "@/components/layout/sidebar-nav";
@@ -60,6 +61,8 @@ export function DashboardShell({
       </div>
 
       <div className="flex min-w-0 flex-1 flex-col">
+        <ImpersonationBanner />
+
         <header className="sticky top-0 z-30 flex items-center justify-between border-b border-stone-200 bg-white/95 px-4 py-3 backdrop-blur supports-[backdrop-filter]:bg-white/80">
           <div className="flex items-center gap-2 lg:hidden">
             <HomefyLogo size="sm" />
