@@ -3,23 +3,32 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isValidIndianMobile, normalizePhoneDigits, phonesMatch, toE164Phone } from "@/lib/phone";
 
-export type ResetOtpChannel = "email" | "phone";
+export type ResetMethod = "email" | "phone";
 
-async function findStaffByEmailAndPhone(email: string, phone: string) {
+async function findStaffByEmail(email: string) {
   const admin = createAdminClient();
-  const normalizedEmail = email.trim().toLowerCase();
-  const digits = normalizePhoneDigits(phone);
-
   const { data: profile, error } = await admin
     .from("profiles")
     .select("id, email, phone, full_name")
-    .eq("email", normalizedEmail)
+    .eq("email", email.trim().toLowerCase())
     .maybeSingle();
 
   if (error || !profile) return null;
-  if (!profile.phone || !phonesMatch(profile.phone, digits)) return null;
-
   return profile;
+}
+
+async function findStaffByPhone(phone: string) {
+  const admin = createAdminClient();
+  const digits = normalizePhoneDigits(phone);
+
+  const { data: profiles, error } = await admin
+    .from("profiles")
+    .select("id, email, phone, full_name")
+    .not("phone", "is", null);
+
+  if (error || !profiles) return null;
+
+  return profiles.find((p) => p.phone && phonesMatch(p.phone, digits)) ?? null;
 }
 
 async function sendSupabaseOtp(payload: { email?: string; phone?: string }) {
@@ -48,8 +57,7 @@ async function sendSupabaseOtp(payload: { email?: string; phone?: string }) {
     const body = await response.text();
     if (body.includes("Phone provider") || body.includes("SMS")) {
       return {
-        error:
-          "SMS OTP is not enabled yet. Enable Phone auth in Supabase, or choose Email OTP.",
+        error: "SMS OTP is not enabled yet. Try recovering with your email instead.",
       };
     }
     return { error: "Could not send OTP. Check your details and try again." };
@@ -58,30 +66,45 @@ async function sendSupabaseOtp(payload: { email?: string; phone?: string }) {
   return { success: true as const };
 }
 
-export async function requestPasswordResetOtp(
-  email: string,
-  phone: string,
-  channel: ResetOtpChannel
-) {
-  const trimmedEmail = email.trim().toLowerCase();
-  const trimmedPhone = phone.trim();
+export async function requestPasswordResetOtp(identifier: string, method: ResetMethod) {
+  const trimmed = identifier.trim();
 
-  if (!trimmedEmail || !trimmedPhone) {
-    return { error: "Email and phone number are both required." };
+  if (!trimmed) {
+    return { error: method === "email" ? "Enter your email." : "Enter your mobile number." };
   }
 
-  if (!isValidIndianMobile(trimmedPhone)) {
+  if (method === "phone" && !isValidIndianMobile(trimmed)) {
     return { error: "Enter a valid 10-digit mobile number." };
   }
 
-  const profile = await findStaffByEmailAndPhone(trimmedEmail, trimmedPhone);
+  const profile =
+    method === "email"
+      ? await findStaffByEmail(trimmed)
+      : await findStaffByPhone(trimmed);
+
   if (!profile) {
-    return { error: "No account found with this email and phone number." };
+    return {
+      error:
+        method === "email"
+          ? "No account found with this email."
+          : "No account found with this mobile number.",
+    };
   }
 
   const admin = createAdminClient();
-  const e164 = toE164Phone(trimmedPhone);
 
+  if (method === "email") {
+    const email = profile.email.trim().toLowerCase();
+    const result = await sendSupabaseOtp({ email });
+    if (result.error) return result;
+    return { success: true as const, channel: "email" as const, email };
+  }
+
+  if (!profile.phone) {
+    return { error: "This account has no mobile number. Use email recovery or contact admin." };
+  }
+
+  const e164 = toE164Phone(trimmed);
   const { error: syncError } = await admin.auth.admin.updateUserById(profile.id, {
     phone: e164,
     phone_confirm: true,
@@ -89,12 +112,6 @@ export async function requestPasswordResetOtp(
 
   if (syncError) {
     return { error: "Could not verify account. Contact your admin." };
-  }
-
-  if (channel === "email") {
-    const result = await sendSupabaseOtp({ email: trimmedEmail });
-    if (result.error) return result;
-    return { success: true as const, channel: "email" as const, email: trimmedEmail };
   }
 
   const result = await sendSupabaseOtp({ phone: e164 });

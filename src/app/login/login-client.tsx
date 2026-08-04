@@ -3,11 +3,11 @@
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { requestPasswordResetOtp, type ResetOtpChannel } from "@/app/login/actions";
+import { requestPasswordResetOtp, type ResetMethod } from "@/app/login/actions";
 import { AddToHomeScreen } from "@/components/layout/add-to-home-screen";
 import { HomefyLogo } from "@/components/layout/homefy-logo";
 import { Button } from "@/components/ui/button";
-import { Input, Label, Select } from "@/components/ui/input";
+import { Input, Label } from "@/components/ui/input";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 
 type Mode = "signin" | "forgot" | "otp";
@@ -17,10 +17,10 @@ export default function LoginPageClient() {
   const searchParams = useSearchParams();
   const [mode, setMode] = useState<Mode>("signin");
   const [email, setEmail] = useState("");
-  const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [otp, setOtp] = useState("");
-  const [otpChannel, setOtpChannel] = useState<ResetOtpChannel>("phone");
+  const [resetMethod, setResetMethod] = useState<ResetMethod>("email");
+  const [resetIdentifier, setResetIdentifier] = useState("");
   const [otpTarget, setOtpTarget] = useState<{ email?: string; phone?: string }>({});
   const [error, setError] = useState<string | null>(
     searchParams.get("error") === "auth_callback"
@@ -67,7 +67,7 @@ export default function LoginPageClient() {
 
     let result;
     try {
-      result = await requestPasswordResetOtp(email, phone, otpChannel);
+      result = await requestPasswordResetOtp(resetIdentifier, resetMethod);
     } catch {
       setLoading(false);
       setError("Something went wrong. Please try again.");
@@ -164,7 +164,7 @@ export default function LoginPageClient() {
                     onClick={() => switchMode("forgot")}
                     className="text-xs font-medium text-amber-700 hover:underline"
                   >
-                    Forgot password?
+                    Forgot password or email?
                   </button>
                 </div>
                 <Input
@@ -187,45 +187,69 @@ export default function LoginPageClient() {
           ) : mode === "forgot" ? (
             <form onSubmit={handleRequestOtp} className="space-y-4">
               <p className="text-sm text-stone-600">
-                Enter the email and mobile number on your staff account. We&apos;ll send an OTP
-                after verifying both match.
+                Enter your email or mobile number — only one is needed. We&apos;ll send an OTP to
+                verify your account.
               </p>
-              <div>
-                <Label htmlFor="forgot-email">Email</Label>
-                <Input
-                  id="forgot-email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="you@homefy.com"
-                  required
-                  autoComplete="email"
-                />
-              </div>
-              <div>
-                <Label htmlFor="forgot-phone">Mobile Number</Label>
-                <Input
-                  id="forgot-phone"
-                  type="tel"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  placeholder="9876543210"
-                  inputMode="numeric"
-                  required
-                  autoComplete="tel"
-                />
-              </div>
-              <div>
-                <Label htmlFor="otp-channel">Send OTP via</Label>
-                <Select
-                  id="otp-channel"
-                  value={otpChannel}
-                  onChange={(e) => setOtpChannel(e.target.value as ResetOtpChannel)}
+              <div className="flex gap-2 rounded-lg bg-stone-100 p-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setResetMethod("email");
+                    setResetIdentifier("");
+                    setError(null);
+                  }}
+                  className={`flex-1 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+                    resetMethod === "email"
+                      ? "bg-white text-stone-900 shadow-sm"
+                      : "text-stone-500 hover:text-stone-700"
+                  }`}
                 >
-                  <option value="phone">SMS to mobile</option>
-                  <option value="email">Email</option>
-                </Select>
+                  Email
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setResetMethod("phone");
+                    setResetIdentifier("");
+                    setError(null);
+                  }}
+                  className={`flex-1 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+                    resetMethod === "phone"
+                      ? "bg-white text-stone-900 shadow-sm"
+                      : "text-stone-500 hover:text-stone-700"
+                  }`}
+                >
+                  Mobile
+                </button>
               </div>
+              {resetMethod === "email" ? (
+                <div>
+                  <Label htmlFor="forgot-email">Email</Label>
+                  <Input
+                    id="forgot-email"
+                    type="email"
+                    value={resetIdentifier}
+                    onChange={(e) => setResetIdentifier(e.target.value)}
+                    placeholder="you@homefy.com"
+                    required
+                    autoComplete="email"
+                  />
+                </div>
+              ) : (
+                <div>
+                  <Label htmlFor="forgot-phone">Mobile Number</Label>
+                  <Input
+                    id="forgot-phone"
+                    type="tel"
+                    value={resetIdentifier}
+                    onChange={(e) => setResetIdentifier(e.target.value)}
+                    placeholder="9876543210"
+                    inputMode="numeric"
+                    required
+                    autoComplete="tel"
+                  />
+                </div>
+              )}
               {error && (
                 <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>
               )}
