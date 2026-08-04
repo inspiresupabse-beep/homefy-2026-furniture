@@ -3,7 +3,6 @@
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { isRedirectError } from "next/dist/client/components/redirect-error";
 import {
   IMPERSONATION_BACKUP_COOKIE,
   IMPERSONATION_META_COOKIE,
@@ -15,6 +14,16 @@ import { isValidIndianMobile, toE164Phone } from "@/lib/phone";
 import type { StaffPower, UserRole } from "@/lib/types/database";
 
 const IMPERSONATION_COOKIE_MAX_AGE = 60 * 60 * 8;
+
+function isNextRedirect(error: unknown): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "digest" in error &&
+    typeof (error as { digest?: string }).digest === "string" &&
+    String((error as { digest: string }).digest).startsWith("NEXT_REDIRECT")
+  );
+}
 
 async function requireAdminSession() {
   const supabase = await createClient();
@@ -296,7 +305,7 @@ export async function switchToUser(userId: string) {
     revalidatePath("/", "layout");
     redirect("/");
   } catch (err) {
-    if (isRedirectError(err)) throw err;
+    if (isNextRedirect(err)) throw err;
     return { error: formatActionError(err) };
   }
 }
@@ -333,7 +342,7 @@ export async function switchBackToAdmin() {
   try {
     redirect("/users");
   } catch (err) {
-    if (isRedirectError(err)) throw err;
+    if (isNextRedirect(err)) throw err;
     return { error: formatActionError(err) };
   }
 }

@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { LogIn, Pencil, Trash2 } from "lucide-react";
 import { deleteTeamUser, switchToUser } from "@/app/(dashboard)/users/actions";
-import { isAdminRole } from "@/lib/roles";
 import { EditUserModal } from "@/components/users/edit-user-modal";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -79,7 +78,7 @@ export function UsersList({
           )}
 
           <div className="overflow-x-auto overscroll-x-contain [-webkit-overflow-scrolling:touch]">
-            <table className="w-full min-w-[780px] text-sm">
+            <table className="w-full min-w-[860px] text-sm">
               <thead>
                 <tr className="border-b border-stone-100 bg-stone-50 text-left text-stone-500">
                   <th className="px-4 py-3 font-medium lg:px-6">Name</th>
@@ -116,17 +115,19 @@ export function UsersList({
                     <td className="whitespace-nowrap px-4 py-4 text-stone-500 lg:px-6">
                       {new Date(user.created_at).toLocaleDateString("en-IN")}
                     </td>
-                    <td className="sticky right-0 bg-white px-4 py-4 shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.08)] group-hover:bg-stone-50/50 lg:px-6">
-                      <div className="flex justify-end gap-1">
-                        {!isAdminRole(user.role) && user.id !== currentUserId && (
+                    <td className="sticky right-0 min-w-[168px] bg-white px-4 py-4 shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.08)] group-hover:bg-stone-50/50 lg:px-6">
+                      <div className="flex flex-wrap justify-end gap-1">
+                        {user.role !== "admin" && user.id !== currentUserId && (
                           <Button
-                            variant="ghost"
+                            variant="secondary"
                             size="sm"
+                            className="gap-1 border-amber-200 bg-amber-50 text-amber-900 hover:bg-amber-100"
                             onClick={() => handleSwitch(user)}
                             disabled={switchingId === user.id}
                             title={`Switch to ${user.full_name}`}
                           >
-                            <LogIn className="h-4 w-4 text-amber-700" />
+                            <LogIn className="h-3.5 w-3.5 shrink-0" />
+                            {switchingId === user.id ? "..." : "Switch"}
                           </Button>
                         )}
                         <Button
