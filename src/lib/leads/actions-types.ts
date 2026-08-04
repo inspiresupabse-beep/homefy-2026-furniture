@@ -18,6 +18,12 @@ export interface CreateLeadInput {
   visit_status?: VisitStatus;
   site_visit_date?: string;
   narration?: string;
+  address_line1?: string;
+  address_line2?: string;
+  city?: string;
+  district?: string;
+  state?: string;
+  pin_code?: string;
 }
 
 export type LeadActionResult = {

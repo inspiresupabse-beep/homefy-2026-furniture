@@ -60,6 +60,11 @@ export function LeadCard({
           <Phone className="h-3 w-3 shrink-0" />
           {lead.phone}
         </div>
+        {(lead.city || lead.district) && (
+          <div className="text-stone-400">
+            {[lead.city, lead.district].filter(Boolean).join(", ")}
+          </div>
+        )}
         {lead.site_visit_date && (
           <div className="text-stone-400">
             Visit: {new Date(lead.site_visit_date).toLocaleDateString("en-IN")}

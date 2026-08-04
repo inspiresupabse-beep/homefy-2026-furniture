@@ -72,6 +72,12 @@ export interface Lead {
   assigned_to: string | null;
   notes: string | null;
   source: string | null;
+  address_line1: string | null;
+  address_line2: string | null;
+  city: string | null;
+  district: string | null;
+  state: string | null;
+  pin_code: string | null;
   created_by: string | null;
   created_at: string;
   updated_at: string;

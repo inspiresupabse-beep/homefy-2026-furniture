@@ -35,6 +35,12 @@ export async function createLead(input: CreateLeadInput): Promise<LeadActionResu
     visit_status: input.visit_status ?? "not_applicable",
     site_visit_date: input.site_visit_date || null,
     narration: input.narration || null,
+    address_line1: input.address_line1 || null,
+    address_line2: input.address_line2 || null,
+    city: input.city || null,
+    district: input.district || null,
+    state: input.state || null,
+    pin_code: input.pin_code || null,
     status: "new_inquiry" as LeadStatus,
   };
 

@@ -129,6 +129,9 @@ export default function LeadsPageClient({ isAdmin }: { isAdmin: boolean }) {
         (l.notes?.toLowerCase().includes(q) ?? false) ||
         l.temperature.includes(q) ||
         l.interaction_type.includes(q) ||
+        (l.city?.toLowerCase().includes(q) ?? false) ||
+        (l.district?.toLowerCase().includes(q) ?? false) ||
+        (l.address_line1?.toLowerCase().includes(q) ?? false) ||
         agentName.includes(q)
       );
     });

@@ -28,7 +28,9 @@ import {
   type VisitStatus,
 } from "@/lib/types/database";
 import { LeadRemindersSection } from "@/components/leads/lead-reminders-section";
-import { Phone, X, FileText } from "lucide-react";
+import { LeadAddressFields } from "@/components/leads/lead-address-fields";
+import { formatLeadAddress, leadAddressFromLead } from "@/lib/address";
+import { Phone, MapPin, X, FileText } from "lucide-react";
 
 interface LeadDetailModalProps {
   lead: Lead;
@@ -64,6 +66,7 @@ export function LeadDetailModal({
   const [narration, setNarration] = useState(lead.narration ?? "");
   const [notes, setNotes] = useState(lead.notes ?? "");
   const [assignedTo, setAssignedTo] = useState(lead.assigned_to ?? "");
+  const [address, setAddress] = useState(leadAddressFromLead(lead));
 
   const draftLead: Lead = {
     ...lead,
@@ -101,6 +104,12 @@ export function LeadDetailModal({
         narration: narration || null,
         notes: notes || null,
         assigned_to: assignedTo || null,
+        address_line1: address.address_line1 || null,
+        address_line2: address.address_line2 || null,
+        city: address.city || null,
+        district: address.district || null,
+        state: address.state || null,
+        pin_code: address.pin_code || null,
       })
       .eq("id", lead.id);
 
@@ -194,7 +203,15 @@ export function LeadDetailModal({
               {lead.phone}
             </div>
             {lead.email && <p className="text-stone-600">{lead.email}</p>}
+            {formatLeadAddress(address) && (
+              <div className="flex items-start gap-2 text-stone-600">
+                <MapPin className="mt-0.5 h-4 w-4 shrink-0" />
+                <span className="whitespace-pre-line">{formatLeadAddress(address)}</span>
+              </div>
+            )}
           </div>
+
+          <LeadAddressFields value={address} onChange={setAddress} />
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>

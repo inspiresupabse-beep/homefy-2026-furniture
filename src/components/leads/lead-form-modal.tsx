@@ -4,6 +4,8 @@ import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Select, Textarea } from "@/components/ui/input";
+import { LeadAddressFields } from "@/components/leads/lead-address-fields";
+import { EMPTY_LEAD_ADDRESS } from "@/lib/address";
 import { defaultVisitStatusForInteraction, requiresVisitCompletion } from "@/lib/leads";
 import {
   INTERACTION_TYPES,
@@ -39,6 +41,7 @@ export function LeadFormModal({ agents, onClose, onSaved }: LeadFormModalProps) 
     visit_status: "not_applicable" as VisitStatus,
     site_visit_date: "",
     narration: "",
+    address: { ...EMPTY_LEAD_ADDRESS },
   });
 
   function setInteraction(type: InteractionType) {
@@ -82,6 +85,12 @@ export function LeadFormModal({ agents, onClose, onSaved }: LeadFormModalProps) 
       visit_status: form.visit_status,
       site_visit_date: form.site_visit_date || null,
       narration: form.narration || null,
+      address_line1: form.address.address_line1 || null,
+      address_line2: form.address.address_line2 || null,
+      city: form.address.city || null,
+      district: form.address.district || null,
+      state: form.address.state || null,
+      pin_code: form.address.pin_code || null,
       status: "new_inquiry",
     });
 
@@ -131,6 +140,10 @@ export function LeadFormModal({ agents, onClose, onSaved }: LeadFormModalProps) 
               />
             </div>
           </div>
+          <LeadAddressFields
+            value={form.address}
+            onChange={(address) => setForm({ ...form, address })}
+          />
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <Label>Interaction type</Label>

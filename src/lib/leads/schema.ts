@@ -39,6 +39,12 @@ export function normalizeLead(raw: Record<string, unknown>): Lead {
     site_visit_date: (raw.site_visit_date as string | null) ?? null,
     assigned_staff: (raw.assigned_staff as string | null) ?? null,
     narration: (raw.narration as string | null) ?? null,
+    address_line1: (raw.address_line1 as string | null) ?? null,
+    address_line2: (raw.address_line2 as string | null) ?? null,
+    city: (raw.city as string | null) ?? null,
+    district: (raw.district as string | null) ?? null,
+    state: (raw.state as string | null) ?? null,
+    pin_code: (raw.pin_code as string | null) ?? null,
   };
 }
 
