@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { formatRole } from "@/lib/roles";
 import { formatStaffPower, getStaffPower } from "@/lib/permissions";
+import { formatPhoneDisplay } from "@/lib/phone";
 import type { Profile } from "@/lib/types/database";
 
 export function UsersList({
@@ -65,6 +66,11 @@ export function UsersList({
                   <div className="min-w-0">
                     <p className="truncate font-medium text-stone-900">{user.full_name}</p>
                     <p className="truncate text-sm text-stone-500">{user.email}</p>
+                    {user.phone && (
+                      <p className="truncate text-xs text-stone-400">
+                        {formatPhoneDisplay(user.phone)}
+                      </p>
+                    )}
                   </div>
                   <span className="shrink-0 rounded-full bg-white px-2 py-0.5 text-xs ring-1 ring-stone-200">
                     {formatRole(user.role)}
@@ -113,6 +119,7 @@ export function UsersList({
                 <tr className="border-b border-stone-100 bg-stone-50 text-left text-stone-500">
                   <th className="px-4 py-3 font-medium lg:px-6">Name</th>
                   <th className="px-4 py-3 font-medium lg:px-6">Email</th>
+                  <th className="px-4 py-3 font-medium lg:px-6">Phone</th>
                   <th className="px-4 py-3 font-medium lg:px-6">Role</th>
                   <th className="px-4 py-3 font-medium lg:px-6">Power</th>
                   <th className="px-4 py-3 font-medium lg:px-6">Joined</th>
@@ -126,6 +133,9 @@ export function UsersList({
                       {user.full_name}
                     </td>
                     <td className="px-4 py-4 text-stone-600 lg:px-6">{user.email}</td>
+                    <td className="px-4 py-4 text-stone-600 lg:px-6">
+                      {user.phone ? formatPhoneDisplay(user.phone) : "—"}
+                    </td>
                     <td className="px-4 py-4 lg:px-6">
                       <span className="rounded-full bg-stone-100 px-2.5 py-0.5 text-xs">
                         {formatRole(user.role)}
@@ -166,7 +176,7 @@ export function UsersList({
                 ))}
                 {users.length === 0 && (
                   <tr>
-                    <td colSpan={6} className="px-6 py-12 text-center text-stone-400">
+                    <td colSpan={7} className="px-6 py-12 text-center text-stone-400">
                       No users yet
                     </td>
                   </tr>

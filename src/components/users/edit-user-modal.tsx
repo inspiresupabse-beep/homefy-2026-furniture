@@ -80,6 +80,19 @@ export function EditUserModal({
             />
           </div>
           <div>
+            <Label htmlFor="edit_phone">Mobile Number</Label>
+            <Input
+              id="edit_phone"
+              name="phone"
+              type="tel"
+              defaultValue={user.phone ?? ""}
+              placeholder="9876543210"
+              inputMode="numeric"
+              pattern="[0-9+\s-]{10,14}"
+              required
+            />
+          </div>
+          <div>
             <Label htmlFor="edit_role">Role</Label>
             <Select id="edit_role" name="role" defaultValue={user.role}>
               {USER_ROLES.map(({ value, label }) => (

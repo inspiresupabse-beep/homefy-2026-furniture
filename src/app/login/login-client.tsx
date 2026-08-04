@@ -3,20 +3,25 @@
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { requestPasswordResetOtp, type ResetOtpChannel } from "@/app/login/actions";
 import { AddToHomeScreen } from "@/components/layout/add-to-home-screen";
 import { HomefyLogo } from "@/components/layout/homefy-logo";
 import { Button } from "@/components/ui/button";
-import { Input, Label } from "@/components/ui/input";
+import { Input, Label, Select } from "@/components/ui/input";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 
-type Mode = "signin" | "forgot";
+type Mode = "signin" | "forgot" | "otp";
 
 export default function LoginPageClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [mode, setMode] = useState<Mode>("signin");
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
+  const [otp, setOtp] = useState("");
+  const [otpChannel, setOtpChannel] = useState<ResetOtpChannel>("phone");
+  const [otpTarget, setOtpTarget] = useState<{ email?: string; phone?: string }>({});
   const [error, setError] = useState<string | null>(
     searchParams.get("error") === "auth_callback"
       ? "Reset link expired or invalid. Request a new one."
@@ -29,6 +34,7 @@ export default function LoginPageClient() {
     setMode(next);
     setError(null);
     setMessage(null);
+    setOtp("");
   }
 
   async function handleSignIn(e: React.FormEvent) {
@@ -53,26 +59,70 @@ export default function LoginPageClient() {
     router.refresh();
   }
 
-  async function handleForgotPassword(e: React.FormEvent) {
+  async function handleRequestOtp(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     setError(null);
     setMessage(null);
 
-    const supabase = createClient();
-    const redirectTo = `${window.location.origin}/auth/callback?next=/login/reset-password`;
-    const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo,
-    });
-
-    setLoading(false);
-
-    if (resetError) {
-      setError(resetError.message);
+    let result;
+    try {
+      result = await requestPasswordResetOtp(email, phone, otpChannel);
+    } catch {
+      setLoading(false);
+      setError("Something went wrong. Please try again.");
       return;
     }
 
-    setMessage("Password reset link sent. Check your email inbox.");
+    setLoading(false);
+
+    if (result.error) {
+      setError(result.error);
+      return;
+    }
+
+    setOtpTarget(
+      result.channel === "email"
+        ? { email: result.email }
+        : { phone: result.phone }
+    );
+    setMessage(
+      result.channel === "email"
+        ? "OTP sent to your email. Check your inbox."
+        : "OTP sent to your mobile number via SMS."
+    );
+    setMode("otp");
+  }
+
+  async function handleVerifyOtp(e: React.FormEvent) {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+
+    const supabase = createClient();
+    const token = otp.trim();
+
+    if (token.length < 6) {
+      setLoading(false);
+      setError("Enter the 6-digit OTP.");
+      return;
+    }
+
+    const verifyPayload = otpTarget.phone
+      ? { phone: otpTarget.phone, token, type: "sms" as const }
+      : { email: otpTarget.email!, token, type: "email" as const };
+
+    const { error: verifyError } = await supabase.auth.verifyOtp(verifyPayload);
+
+    setLoading(false);
+
+    if (verifyError) {
+      setError(verifyError.message);
+      return;
+    }
+
+    router.push("/login/reset-password");
+    router.refresh();
   }
 
   return (
@@ -84,9 +134,9 @@ export default function LoginPageClient() {
             <div>
               <h1 className="text-xl font-bold text-stone-900">Homefy CRM</h1>
               <p className="text-sm text-stone-500">
-                {mode === "signin"
-                  ? "Sign in to manage leads & orders"
-                  : "Reset your password"}
+                {mode === "signin" && "Sign in to manage leads & orders"}
+                {mode === "forgot" && "Verify your account to reset password"}
+                {mode === "otp" && "Enter the OTP we sent you"}
               </p>
             </div>
           </div>
@@ -134,10 +184,11 @@ export default function LoginPageClient() {
                 {loading ? "Signing in..." : "Sign in"}
               </Button>
             </form>
-          ) : (
-            <form onSubmit={handleForgotPassword} className="space-y-4">
+          ) : mode === "forgot" ? (
+            <form onSubmit={handleRequestOtp} className="space-y-4">
               <p className="text-sm text-stone-600">
-                Enter your account email and we&apos;ll send you a link to reset your password.
+                Enter the email and mobile number on your staff account. We&apos;ll send an OTP
+                after verifying both match.
               </p>
               <div>
                 <Label htmlFor="forgot-email">Email</Label>
@@ -151,6 +202,30 @@ export default function LoginPageClient() {
                   autoComplete="email"
                 />
               </div>
+              <div>
+                <Label htmlFor="forgot-phone">Mobile Number</Label>
+                <Input
+                  id="forgot-phone"
+                  type="tel"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  placeholder="9876543210"
+                  inputMode="numeric"
+                  required
+                  autoComplete="tel"
+                />
+              </div>
+              <div>
+                <Label htmlFor="otp-channel">Send OTP via</Label>
+                <Select
+                  id="otp-channel"
+                  value={otpChannel}
+                  onChange={(e) => setOtpChannel(e.target.value as ResetOtpChannel)}
+                >
+                  <option value="phone">SMS to mobile</option>
+                  <option value="email">Email</option>
+                </Select>
+              </div>
               {error && (
                 <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>
               )}
@@ -160,7 +235,7 @@ export default function LoginPageClient() {
                 </p>
               )}
               <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? "Sending..." : "Send reset link"}
+                {loading ? "Sending OTP..." : "Send OTP"}
               </Button>
               <p className="text-center text-sm text-stone-500">
                 <button
@@ -169,6 +244,44 @@ export default function LoginPageClient() {
                   className="font-medium text-amber-700 hover:underline"
                 >
                   Back to sign in
+                </button>
+              </p>
+            </form>
+          ) : (
+            <form onSubmit={handleVerifyOtp} className="space-y-4">
+              {message && (
+                <p className="rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
+                  {message}
+                </p>
+              )}
+              <div>
+                <Label htmlFor="otp">6-digit OTP</Label>
+                <Input
+                  id="otp"
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]{6}"
+                  maxLength={6}
+                  value={otp}
+                  onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                  placeholder="123456"
+                  required
+                  autoComplete="one-time-code"
+                />
+              </div>
+              {error && (
+                <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>
+              )}
+              <Button type="submit" className="w-full" disabled={loading}>
+                {loading ? "Verifying..." : "Verify OTP"}
+              </Button>
+              <p className="text-center text-sm text-stone-500">
+                <button
+                  type="button"
+                  onClick={() => switchMode("forgot")}
+                  className="font-medium text-amber-700 hover:underline"
+                >
+                  Resend OTP
                 </button>
               </p>
             </form>

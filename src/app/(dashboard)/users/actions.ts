@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { formatActionError, isRoleEnumError } from "@/lib/action-error";
+import { isValidIndianMobile, toE164Phone } from "@/lib/phone";
 import type { StaffPower, UserRole } from "@/lib/types/database";
 
 async function requireAdminSession() {
@@ -33,7 +34,8 @@ async function applyProfileRole(
   fullName: string,
   email: string,
   role: UserRole,
-  staffPower?: StaffPower
+  staffPower?: StaffPower,
+  phone?: string | null
 ) {
   const power: StaffPower =
     role === "admin" ? "full_access" : (staffPower ?? "leads_and_orders");
@@ -46,6 +48,7 @@ async function applyProfileRole(
         full_name: fullName,
         role,
         email,
+        phone: phone ?? null,
         staff_power: power,
       },
       { onConflict: "id" }
@@ -68,13 +71,20 @@ export async function createTeamUser(formData: FormData) {
 
   const fullName = (formData.get("full_name") as string)?.trim();
   const email = (formData.get("email") as string)?.trim().toLowerCase();
+  const phoneRaw = (formData.get("phone") as string)?.trim();
   const password = formData.get("password") as string;
   const role = (formData.get("role") as UserRole) || "sales_executive";
   const staffPower = (formData.get("staff_power") as StaffPower) || "leads_and_orders";
 
-  if (!fullName || !email || !password) {
-    return { error: "Name, email, and password are required." };
+  if (!fullName || !email || !password || !phoneRaw) {
+    return { error: "Name, email, phone, and password are required." };
   }
+
+  if (!isValidIndianMobile(phoneRaw)) {
+    return { error: "Enter a valid 10-digit mobile number." };
+  }
+
+  const phone = toE164Phone(phoneRaw);
 
   if (password.length < 6) {
     return { error: "Password must be at least 6 characters." };
@@ -86,6 +96,8 @@ export async function createTeamUser(formData: FormData) {
     const { data, error } = await admin.auth.admin.createUser({
       email,
       password,
+      phone,
+      phone_confirm: true,
       email_confirm: true,
       user_metadata: { full_name: fullName, role: "sales_agent" },
     });
@@ -99,7 +111,8 @@ export async function createTeamUser(formData: FormData) {
       fullName,
       email,
       role,
-      staffPower
+      staffPower,
+      phone
     );
 
     if (profileError) {
@@ -125,13 +138,20 @@ export async function updateTeamUser(formData: FormData) {
   const userId = formData.get("user_id") as string;
   const fullName = (formData.get("full_name") as string)?.trim();
   const email = (formData.get("email") as string)?.trim().toLowerCase();
+  const phoneRaw = (formData.get("phone") as string)?.trim();
   const role = formData.get("role") as UserRole;
   const staffPower = (formData.get("staff_power") as StaffPower) || "leads_and_orders";
   const password = (formData.get("password") as string)?.trim();
 
-  if (!userId || !fullName || !email || !role) {
-    return { error: "Name, email, and role are required." };
+  if (!userId || !fullName || !email || !role || !phoneRaw) {
+    return { error: "Name, email, phone, and role are required." };
   }
+
+  if (!isValidIndianMobile(phoneRaw)) {
+    return { error: "Enter a valid 10-digit mobile number." };
+  }
+
+  const phone = toE164Phone(phoneRaw);
 
   if (password && password.length < 6) {
     return { error: "Password must be at least 6 characters." };
@@ -142,10 +162,14 @@ export async function updateTeamUser(formData: FormData) {
 
     const updatePayload: {
       email: string;
+      phone: string;
+      phone_confirm: boolean;
       user_metadata: { full_name: string; role: UserRole };
       password?: string;
     } = {
       email,
+      phone,
+      phone_confirm: true,
       user_metadata: { full_name: fullName, role },
     };
 
@@ -166,7 +190,8 @@ export async function updateTeamUser(formData: FormData) {
       fullName,
       email,
       role,
-      staffPower
+      staffPower,
+      phone
     );
 
     if (profileError) return { error: profileError };

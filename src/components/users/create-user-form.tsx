@@ -66,6 +66,21 @@ export function CreateUserForm({ onCreated }: { onCreated?: () => void }) {
             />
           </div>
           <div>
+            <Label htmlFor="phone">Mobile Number</Label>
+            <Input
+              id="phone"
+              name="phone"
+              type="tel"
+              placeholder="9876543210"
+              inputMode="numeric"
+              pattern="[0-9+\s-]{10,14}"
+              required
+            />
+            <p className="mt-1 text-xs text-stone-400">
+              Used for OTP login recovery
+            </p>
+          </div>
+          <div>
             <Label htmlFor="password">Password</Label>
             <Input
               id="password"
