@@ -31,42 +31,8 @@ async function findStaffByPhone(phone: string) {
   return profiles.find((p) => p.phone && phonesMatch(p.phone, digits)) ?? null;
 }
 
-async function sendSupabaseOtp(payload: { email?: string; phone?: string }) {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-  if (!url || !serviceKey || !anonKey) {
-    return { error: "Server auth is not configured." };
-  }
-
-  const response = await fetch(`${url}/auth/v1/otp`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${serviceKey}`,
-      apikey: anonKey,
-    },
-    body: JSON.stringify({
-      ...payload,
-      create_user: false,
-    }),
-  });
-
-  if (!response.ok) {
-    const body = await response.text();
-    if (body.includes("Phone provider") || body.includes("SMS")) {
-      return {
-        error: "SMS OTP is not enabled yet. Try recovering with your email instead.",
-      };
-    }
-    return { error: "Could not send OTP. Check your details and try again." };
-  }
-
-  return { success: true as const };
-}
-
-export async function requestPasswordResetOtp(identifier: string, method: ResetMethod) {
+/** Verify staff exists and return contact details for client-side OTP (anon key sends OTP email/SMS). */
+export async function preparePasswordReset(identifier: string, method: ResetMethod) {
   const trimmed = identifier.trim();
 
   if (!trimmed) {
@@ -78,9 +44,7 @@ export async function requestPasswordResetOtp(identifier: string, method: ResetM
   }
 
   const profile =
-    method === "email"
-      ? await findStaffByEmail(trimmed)
-      : await findStaffByPhone(trimmed);
+    method === "email" ? await findStaffByEmail(trimmed) : await findStaffByPhone(trimmed);
 
   if (!profile) {
     return {
@@ -91,13 +55,13 @@ export async function requestPasswordResetOtp(identifier: string, method: ResetM
     };
   }
 
-  const admin = createAdminClient();
-
   if (method === "email") {
-    const email = profile.email.trim().toLowerCase();
-    const result = await sendSupabaseOtp({ email });
-    if (result.error) return result;
-    return { success: true as const, channel: "email" as const, email };
+    return {
+      success: true as const,
+      channel: "email" as const,
+      email: profile.email.trim().toLowerCase(),
+      userId: profile.id,
+    };
   }
 
   if (!profile.phone) {
@@ -105,6 +69,7 @@ export async function requestPasswordResetOtp(identifier: string, method: ResetM
   }
 
   const e164 = toE164Phone(trimmed);
+  const admin = createAdminClient();
   const { error: syncError } = await admin.auth.admin.updateUserById(profile.id, {
     phone: e164,
     phone_confirm: true,
@@ -114,7 +79,26 @@ export async function requestPasswordResetOtp(identifier: string, method: ResetM
     return { error: "Could not verify account. Contact your admin." };
   }
 
-  const result = await sendSupabaseOtp({ phone: e164 });
-  if (result.error) return result;
-  return { success: true as const, channel: "phone" as const, phone: e164 };
+  return {
+    success: true as const,
+    channel: "phone" as const,
+    phone: e164,
+    userId: profile.id,
+  };
+}
+
+/** Fallback: update password with service role when client session update fails. */
+export async function adminUpdatePassword(userId: string, newPassword: string) {
+  if (!userId || newPassword.length < 6) {
+    return { error: "Password must be at least 6 characters." };
+  }
+
+  try {
+    const admin = createAdminClient();
+    const { error } = await admin.auth.admin.updateUserById(userId, { password: newPassword });
+    if (error) return { error: error.message };
+    return { success: true as const };
+  } catch {
+    return { error: "Could not update password. Try again." };
+  }
 }
