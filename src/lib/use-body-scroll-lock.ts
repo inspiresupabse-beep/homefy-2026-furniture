@@ -1,29 +1,37 @@
 import { useEffect } from "react";
 
-/** Prevent background scroll (and layout jump) while a modal is open. */
+/** Prevent background scroll while a modal is open (iOS-safe — no position:fixed). */
 export function useBodyScrollLock(locked: boolean) {
   useEffect(() => {
     if (!locked) return;
 
+    const html = document.documentElement;
+    const body = document.body;
     const scrollY = window.scrollY;
-    const { style } = document.body;
     const previous = {
-      overflow: style.overflow,
-      position: style.position,
-      top: style.top,
-      width: style.width,
+      htmlOverflow: html.style.overflow,
+      bodyOverflow: body.style.overflow,
+      bodyPaddingRight: body.style.paddingRight,
+      htmlOverscroll: html.style.overscrollBehavior,
+      bodyOverscroll: body.style.overscrollBehavior,
     };
 
-    style.overflow = "hidden";
-    style.position = "fixed";
-    style.top = `-${scrollY}px`;
-    style.width = "100%";
+    const scrollbarWidth = window.innerWidth - html.clientWidth;
+
+    html.style.overflow = "hidden";
+    body.style.overflow = "hidden";
+    html.style.overscrollBehavior = "none";
+    body.style.overscrollBehavior = "none";
+    if (scrollbarWidth > 0) {
+      body.style.paddingRight = `${scrollbarWidth}px`;
+    }
 
     return () => {
-      style.overflow = previous.overflow;
-      style.position = previous.position;
-      style.top = previous.top;
-      style.width = previous.width;
+      html.style.overflow = previous.htmlOverflow;
+      body.style.overflow = previous.bodyOverflow;
+      body.style.paddingRight = previous.bodyPaddingRight;
+      html.style.overscrollBehavior = previous.htmlOverscroll;
+      body.style.overscrollBehavior = previous.bodyOverscroll;
       window.scrollTo(0, scrollY);
     };
   }, [locked]);

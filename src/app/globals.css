@@ -25,21 +25,13 @@ body {
   touch-action: manipulation;
 }
 
-/* iOS Safari auto-zooms inputs below 16px — keep touch targets readable on mobile */
+/* iOS Safari auto-zooms inputs below 16px — never shrink form controls on touch devices */
 @layer base {
   input,
   select,
   textarea {
     font-size: 16px;
     touch-action: manipulation;
-  }
-
-  @media (min-width: 640px) {
-    input,
-    select,
-    textarea {
-      font-size: 0.875rem;
-    }
   }
 
   button,

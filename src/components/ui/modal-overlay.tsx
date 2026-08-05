@@ -32,6 +32,7 @@ export function ModalOverlay({
       <div
         className={cn(
           "max-h-[min(92dvh,100%)] w-full overflow-y-auto overscroll-contain rounded-t-xl bg-white shadow-xl sm:max-w-lg sm:rounded-xl",
+          "[&_input]:text-base [&_select]:text-base [&_textarea]:text-base",
           panelClassName
         )}
         onClick={(e) => e.stopPropagation()}
