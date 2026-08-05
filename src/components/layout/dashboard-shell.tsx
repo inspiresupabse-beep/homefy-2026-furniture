@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { usePathname } from "next/navigation";
-import { Menu } from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
+import { LogOut, Menu } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { createClient } from "@/lib/supabase/client";
 import { HomefyLogo } from "@/components/layout/homefy-logo";
 import { ImpersonationBanner } from "@/components/layout/impersonation-banner";
 import { NavigationProgress } from "@/components/layout/navigation-progress";
@@ -20,6 +21,7 @@ export function DashboardShell({
   profile: Profile;
   children: React.ReactNode;
 }) {
+  const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
   const pathname = usePathname();
 
@@ -33,6 +35,13 @@ export function DashboardShell({
       document.body.style.overflow = "";
     };
   }, [mobileOpen]);
+
+  async function handleLogout() {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.push("/login");
+    router.refresh();
+  }
 
   return (
     <NotificationProvider userId={profile.id}>
@@ -72,6 +81,15 @@ export function DashboardShell({
             <span className="text-sm font-medium text-stone-600">Homefy CRM</span>
           </div>
           <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="rounded-lg p-2 text-stone-500 hover:bg-stone-100 hover:text-stone-800 lg:hidden"
+              aria-label="Sign out"
+              title="Sign out"
+            >
+              <LogOut className="h-5 w-5" />
+            </button>
             <NotificationBell />
             <button
               type="button"

@@ -28,8 +28,8 @@ export function Sidebar({
   }
 
   return (
-    <aside className="flex h-full w-full flex-col border-r border-stone-200 bg-stone-950 text-stone-100">
-      <div className="flex items-center justify-between border-b border-stone-800 px-4 py-4 sm:px-6 sm:py-5">
+    <aside className="flex h-full max-h-[100dvh] w-full flex-col overflow-hidden border-r border-stone-200 bg-stone-950 text-stone-100">
+      <div className="flex shrink-0 items-center justify-between border-b border-stone-800 px-4 py-4 sm:px-6 sm:py-5">
         <div className="flex items-center gap-3">
           <HomefyLogo size="md" />
           <div className="min-w-0">
@@ -49,25 +49,33 @@ export function Sidebar({
         )}
       </div>
 
-      <SidebarNav profile={profile} onNavigate={onNavigate} />
+      <div className="shrink-0 border-b border-stone-800 px-4 py-3">
+        <div className="flex items-center gap-3">
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-medium text-white">{profile.full_name}</p>
+            <p className="truncate text-xs text-stone-400">{formatRole(profile.role)}</p>
+          </div>
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="flex shrink-0 items-center gap-1.5 rounded-lg border border-stone-700 bg-stone-900 px-2.5 py-2 text-xs font-medium text-stone-200 transition-colors hover:border-stone-600 hover:bg-stone-800"
+          >
+            <LogOut className="h-3.5 w-3.5" />
+            Sign out
+          </button>
+        </div>
+      </div>
 
-      <div className="border-t border-stone-800 p-4">
-        <div className="mb-3 px-2">
-          <p className="truncate text-sm font-medium text-white">{profile.full_name}</p>
-          <p className="truncate text-xs text-stone-400">{formatRole(profile.role)}</p>
-        </div>
-        <div className="mb-3">
-          <AddToHomeScreen variant="sidebar" />
-        </div>
-        <button
-          type="button"
-          onClick={handleLogout}
-          className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-stone-400 transition-colors hover:bg-stone-900 hover:text-stone-200"
-        >
-          <LogOut className="h-4 w-4" />
-          Sign out
-        </button>
+      <SidebarNav profile={profile} onNavigate={onNavigate} className="min-h-0 flex-1 overflow-y-auto" />
+
+      <div className="shrink-0 border-t border-stone-800 p-3">
+        <AddToHomeScreen variant="sidebar" />
       </div>
     </aside>
   );
+}
+
+export async function signOutUser() {
+  const supabase = createClient();
+  await supabase.auth.signOut();
 }
