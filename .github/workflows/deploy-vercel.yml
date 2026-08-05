@@ -6,9 +6,6 @@ on:
       - master
   workflow_dispatch:
 
-env:
-  VERCEL_ORG_ID: team_XhEbXsVrI7jEkzMZlbcMZO03
-
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -29,6 +26,4 @@ jobs:
         run: npm install -g vercel@latest
 
       - name: Deploy to production
-        run: vercel deploy --prod --yes --name homefy-2026-axys --token=${{ secrets.VERCEL_TOKEN }}
-        env:
-          VERCEL_ORG_ID: ${{ env.VERCEL_ORG_ID }}
+        run: vercel deploy --prod --yes --token=${{ secrets.VERCEL_TOKEN }} --scope shanid77shan-2820s-projects
