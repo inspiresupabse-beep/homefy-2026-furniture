@@ -8,10 +8,13 @@ import type { Order } from "@/lib/types/database";
 
 export default async function OrderDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ saved?: string }>;
 }) {
   const { id } = await params;
+  const { saved } = await searchParams;
   const [supabase, profile] = await Promise.all([createClient(), requireProfile()]);
 
   const { data: order } = await supabase
@@ -27,6 +30,7 @@ export default async function OrderDetailPage({
       order={order as Order}
       canEdit={canEditData(profile)}
       canDelete={isAdminRole(profile.role)}
+      saved={saved === "1"}
     />
   );
 }

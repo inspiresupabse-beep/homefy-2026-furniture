@@ -34,6 +34,7 @@ export function OrderForm({ order }: { order?: Order }) {
   const isEditing = Boolean(order);
   const [agents, setAgents] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [products, setProducts] = useState<ProductLineItem[]>(
     order?.product_details?.length
       ? (order.product_details as ProductLineItem[])
@@ -75,6 +76,7 @@ export function OrderForm({ order }: { order?: Order }) {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
+    setError(null);
 
     const payload = {
       customer_name: form.customer_name,
@@ -91,9 +93,14 @@ export function OrderForm({ order }: { order?: Order }) {
     };
 
     if (isEditing && order) {
-      const { error } = await supabase.from("orders").update(payload).eq("id", order.id);
+      const { error: updateError } = await supabase.from("orders").update(payload).eq("id", order.id);
       setLoading(false);
-      if (!error) router.push(`/orders/${order.id}`);
+      if (updateError) {
+        setError(updateError.message);
+        return;
+      }
+      router.refresh();
+      router.replace(`/orders/${order.id}?saved=1`);
       return;
     }
 
@@ -101,7 +108,7 @@ export function OrderForm({ order }: { order?: Order }) {
       data: { user },
     } = await supabase.auth.getUser();
 
-    const { data, error } = await supabase
+    const { data, error: insertError } = await supabase
       .from("orders")
       .insert({
         ...payload,
@@ -112,11 +119,23 @@ export function OrderForm({ order }: { order?: Order }) {
       .single();
 
     setLoading(false);
-    if (!error && data) router.push(`/orders/${data.id}`);
+    if (insertError) {
+      setError(insertError.message);
+      return;
+    }
+    if (data) {
+      router.refresh();
+      router.replace(`/orders/${data.id}?saved=1`);
+    }
   }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
+      {error && (
+        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {error}
+        </div>
+      )}
       <Card>
         <CardHeader>
           <h2 className="font-semibold text-stone-900">Customer Details</h2>

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { formatCurrency } from "@/lib/utils";
 import { PageHeader } from "@/components/layout/page-header";
@@ -18,6 +19,7 @@ export default function OrdersPageClient({
   canEdit: boolean;
   canDelete: boolean;
 }) {
+  const pathname = usePathname();
   const supabaseRef = useRef(createClient());
   const [orderList, setOrderList] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
@@ -33,8 +35,18 @@ export default function OrdersPageClient({
   }, []);
 
   useEffect(() => {
+    if (pathname !== "/orders") return;
+
     void fetchOrders();
-  }, [fetchOrders]);
+
+    const onVisible = () => {
+      if (document.visibilityState === "visible") {
+        void fetchOrders();
+      }
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  }, [pathname, fetchOrders]);
 
   const statusLabel = (status: string) =>
     ORDER_STATUSES.find((s) => s.value === status)?.label ?? status;

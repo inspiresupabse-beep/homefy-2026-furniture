@@ -15,10 +15,12 @@ export function OrderDetail({
   order,
   canEdit = true,
   canDelete = false,
+  saved = false,
 }: {
   order: Order;
   canEdit?: boolean;
   canDelete?: boolean;
+  saved?: boolean;
 }) {
   const router = useRouter();
   const supabase = createClient();
@@ -104,6 +106,11 @@ export function OrderDetail({
 
   return (
     <div className="space-y-4 sm:space-y-6">
+      {saved && (
+        <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+          Order saved successfully.
+        </div>
+      )}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
           <Link href="/orders" className="self-start">
