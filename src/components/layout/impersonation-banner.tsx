@@ -1,32 +1,30 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { ArrowLeft, UserRound } from "lucide-react";
 import { switchBackToAdmin } from "@/app/(dashboard)/users/actions";
 import { Button } from "@/components/ui/button";
-import { readImpersonationMeta, type ImpersonationMeta } from "@/lib/auth/impersonation";
+import { IMPERSONATION_META_COOKIE, type ImpersonationMeta } from "@/lib/auth/impersonation";
 
-export function ImpersonationBanner() {
-  const router = useRouter();
-  const [meta, setMeta] = useState<ImpersonationMeta | null>(null);
+export function ImpersonationBanner({ meta }: { meta: ImpersonationMeta }) {
   const [switchingBack, setSwitchingBack] = useState(false);
-
-  useEffect(() => {
-    setMeta(readImpersonationMeta());
-  }, []);
-
-  if (!meta) return null;
 
   async function handleSwitchBack() {
     setSwitchingBack(true);
-    const result = await switchBackToAdmin();
-    if (result?.error) {
-      setSwitchingBack(false);
-      alert(result.error);
-      return;
+
+    try {
+      const result = await switchBackToAdmin();
+      if (result?.error) {
+        alert(result.error);
+        setSwitchingBack(false);
+        return;
+      }
+
+      document.cookie = `${IMPERSONATION_META_COOKIE}=; path=/; max-age=0`;
+      window.location.assign("/");
+    } catch {
+      window.location.assign("/");
     }
-    router.refresh();
   }
 
   return (

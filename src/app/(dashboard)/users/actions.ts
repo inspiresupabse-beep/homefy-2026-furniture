@@ -340,7 +340,7 @@ export async function switchBackToAdmin() {
 
   revalidatePath("/", "layout");
   try {
-    redirect("/users");
+    redirect("/");
   } catch (err) {
     if (isNextRedirect(err)) throw err;
     return { error: formatActionError(err) };

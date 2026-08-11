@@ -12,13 +12,16 @@ import { Sidebar } from "@/components/layout/sidebar";
 import { MobileBottomNav } from "@/components/layout/sidebar-nav";
 import { NotificationBell } from "@/components/notifications/notification-bell";
 import { NotificationProvider } from "@/components/notifications/notification-provider";
+import type { ImpersonationMeta } from "@/lib/auth/impersonation";
 import type { Profile } from "@/lib/types/database";
 
 export function DashboardShell({
   profile,
+  impersonationMeta,
   children,
 }: {
   profile: Profile;
+  impersonationMeta?: ImpersonationMeta | null;
   children: React.ReactNode;
 }) {
   const router = useRouter();
@@ -70,7 +73,7 @@ export function DashboardShell({
       </div>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <ImpersonationBanner />
+        {impersonationMeta ? <ImpersonationBanner meta={impersonationMeta} /> : null}
 
         <header className="sticky top-0 z-30 flex items-center justify-between border-b border-stone-200 bg-white/95 px-4 py-3 backdrop-blur supports-[backdrop-filter]:bg-white/80">
           <div className="flex items-center gap-2 lg:hidden">
