@@ -31,7 +31,6 @@ import {
 import { InteractionTypesProvider } from "@/lib/leads/interaction-types-context";
 import { OPEN_LEAD_EVENT } from "@/lib/events";
 import { LEAD_STATUSES, type Lead, type LeadStatus, type Profile } from "@/lib/types/database";
-import { cn } from "@/lib/utils";
 import { Plus } from "lucide-react";
 
 export default function LeadsPageClient({ isAdmin }: { isAdmin: boolean }) {
@@ -48,6 +47,8 @@ export default function LeadsPageClient({ isAdmin }: { isAdmin: boolean }) {
   const [search, setSearch] = useState("");
   const [activeStageIndex, setActiveStageIndex] = useState(0);
   const touchStartX = useRef<number | null>(null);
+  const pipelineRef = useRef<HTMLDivElement>(null);
+  const columnRefs = useRef<Partial<Record<LeadStatus, HTMLDivElement | null>>>({});
   const supabaseRef = useRef(createClient());
 
   const fetchData = useCallback(async () => {
@@ -161,9 +162,31 @@ export default function LeadsPageClient({ isAdmin }: { isAdmin: boolean }) {
     return counts;
   }, [filteredLeads]);
 
-  const selectStage = useCallback((index: number) => {
-    setActiveStageIndex(Math.max(0, Math.min(index, LEAD_STATUSES.length - 1)));
+  const scrollToStage = useCallback((index: number) => {
+    const status = LEAD_STATUSES[index]?.value;
+    if (!status) return;
+
+    requestAnimationFrame(() => {
+      columnRefs.current[status]?.scrollIntoView({
+        behavior: "smooth",
+        inline: "center",
+        block: "nearest",
+      });
+      pipelineRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    });
   }, []);
+
+  const selectStage = useCallback(
+    (index: number) => {
+      const next = Math.max(0, Math.min(index, LEAD_STATUSES.length - 1));
+      setActiveStageIndex(next);
+      scrollToStage(next);
+    },
+    [scrollToStage]
+  );
 
   function handlePipelineTouchStart(clientX: number) {
     touchStartX.current = clientX;
@@ -274,17 +297,19 @@ export default function LeadsPageClient({ isAdmin }: { isAdmin: boolean }) {
         onDragEnd={handleDragEnd}
       >
         <div
-          className="lg:-mx-0 lg:grid lg:grid-cols-3 lg:gap-4 xl:grid-cols-6"
+          ref={pipelineRef}
+          className="-mx-4 overflow-x-auto px-4 pb-2 scroll-smooth snap-x snap-mandatory [-webkit-overflow-scrolling:touch] lg:mx-0 lg:overflow-x-visible lg:px-0 lg:snap-none"
           onTouchStart={(e) => handlePipelineTouchStart(e.changedTouches[0]?.clientX ?? 0)}
           onTouchEnd={(e) => handlePipelineTouchEnd(e.changedTouches[0]?.clientX ?? 0)}
         >
-          {LEAD_STATUSES.map((status, index) => (
+          <div className="flex w-max gap-4 lg:w-full lg:grid lg:grid-cols-3 xl:grid-cols-6">
+          {LEAD_STATUSES.map((status) => (
             <div
               key={status.value}
-              className={cn(
-                "w-full",
-                index !== activeStageIndex && "hidden lg:block"
-              )}
+              ref={(el) => {
+                columnRefs.current[status.value] = el;
+              }}
+              className="w-[min(100vw-2rem,20rem)] shrink-0 snap-center lg:w-full"
             >
               <KanbanColumn
                 status={status}
@@ -296,6 +321,7 @@ export default function LeadsPageClient({ isAdmin }: { isAdmin: boolean }) {
               />
             </div>
           ))}
+          </div>
         </div>
         <DragOverlay>
           {activeLead ? (

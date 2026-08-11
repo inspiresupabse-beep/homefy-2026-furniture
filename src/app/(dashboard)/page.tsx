@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { getImpersonationMeta } from "@/lib/auth/impersonation.server";
 import { getProfile } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { formatCurrency } from "@/lib/utils";
@@ -74,9 +75,12 @@ async function getDashboardStats(): Promise<DashboardStats> {
 }
 
 export default async function DashboardPage() {
-  const profile = await getProfile();
+  const [profile, impersonationMeta] = await Promise.all([
+    getProfile(),
+    getImpersonationMeta(),
+  ]);
 
-  if (profile?.role === "admin") {
+  if (profile?.role === "admin" && !impersonationMeta) {
     const staffRows = await getStaffPerformanceData();
 
     return (
