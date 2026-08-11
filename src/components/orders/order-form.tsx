@@ -14,7 +14,13 @@ import {
   type LeadAddress,
 } from "@/lib/address";
 import { STAFF_ROLES } from "@/lib/roles";
-import { ORDER_STATUSES, type Order, type ProductLineItem, type Profile } from "@/lib/types/database";
+import {
+  ORDER_STATUSES,
+  type Order,
+  type OrderStatus,
+  type ProductLineItem,
+  type Profile,
+} from "@/lib/types/database";
 import { Plus, Trash2 } from "lucide-react";
 
 function toDateInputValue(value: string | null | undefined) {
@@ -259,7 +265,9 @@ export function OrderForm({ order }: { order?: Order }) {
             <Label>Status</Label>
             <Select
               value={form.status}
-              onChange={(e) => setForm({ ...form, status: e.target.value })}
+              onChange={(e) =>
+                setForm({ ...form, status: e.target.value as OrderStatus })
+              }
             >
               {ORDER_STATUSES.map((status) => (
                 <option key={status.value} value={status.value}>
