@@ -1,20 +1,16 @@
-import { getImpersonationMetaFromCookies } from "@/lib/auth/impersonation.server";
+import { getImpersonationMeta } from "@/lib/auth/impersonation.server";
 import { requireProfile } from "@/lib/auth/session";
-import { DashboardShell } from "@/components/layout/dashboard-shell";
+import { DashboardLayoutClient } from "@/components/layout/dashboard-layout-client";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [profile, impersonationMeta] = await Promise.all([
     requireProfile(),
-    getImpersonationMetaFromCookies(),
+    getImpersonationMeta(),
   ]);
 
   return (
-    <DashboardShell
-      key={profile.id}
-      profile={profile}
-      impersonationMeta={impersonationMeta}
-    >
+    <DashboardLayoutClient profile={profile} impersonationMeta={impersonationMeta}>
       {children}
-    </DashboardShell>
+    </DashboardLayoutClient>
   );
 }

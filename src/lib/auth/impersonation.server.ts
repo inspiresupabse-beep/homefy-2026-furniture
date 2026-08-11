@@ -1,10 +1,9 @@
 import { cookies } from "next/headers";
-import {
-  IMPERSONATION_META_COOKIE,
-  type ImpersonationMeta,
-} from "@/lib/auth/impersonation";
+import { IMPERSONATION_META_COOKIE, type ImpersonationMeta } from "@/lib/auth/impersonation";
 
-function parseImpersonationMeta(raw: string | undefined): ImpersonationMeta | null {
+export async function getImpersonationMeta(): Promise<ImpersonationMeta | null> {
+  const cookieStore = await cookies();
+  const raw = cookieStore.get(IMPERSONATION_META_COOKIE)?.value;
   if (!raw) return null;
 
   try {
@@ -12,9 +11,4 @@ function parseImpersonationMeta(raw: string | undefined): ImpersonationMeta | nu
   } catch {
     return null;
   }
-}
-
-export async function getImpersonationMetaFromCookies(): Promise<ImpersonationMeta | null> {
-  const cookieStore = await cookies();
-  return parseImpersonationMeta(cookieStore.get(IMPERSONATION_META_COOKIE)?.value);
 }

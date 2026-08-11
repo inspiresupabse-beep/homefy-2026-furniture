@@ -339,12 +339,7 @@ export async function switchBackToAdmin() {
   cookieStore.delete(IMPERSONATION_META_COOKIE);
 
   revalidatePath("/", "layout");
-  try {
-    redirect("/");
-  } catch (err) {
-    if (isNextRedirect(err)) throw err;
-    return { error: formatActionError(err) };
-  }
+  return { success: true as const };
 }
 
 export async function deleteTeamUser(userId: string) {

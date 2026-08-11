@@ -4,7 +4,10 @@ import { useState } from "react";
 import { ArrowLeft, UserRound } from "lucide-react";
 import { switchBackToAdmin } from "@/app/(dashboard)/users/actions";
 import { Button } from "@/components/ui/button";
-import { IMPERSONATION_META_COOKIE, type ImpersonationMeta } from "@/lib/auth/impersonation";
+import {
+  IMPERSONATION_META_COOKIE,
+  type ImpersonationMeta,
+} from "@/lib/auth/impersonation";
 
 export function ImpersonationBanner({ meta }: { meta: ImpersonationMeta }) {
   const [switchingBack, setSwitchingBack] = useState(false);
@@ -12,19 +15,15 @@ export function ImpersonationBanner({ meta }: { meta: ImpersonationMeta }) {
   async function handleSwitchBack() {
     setSwitchingBack(true);
 
-    try {
-      const result = await switchBackToAdmin();
-      if (result?.error) {
-        alert(result.error);
-        setSwitchingBack(false);
-        return;
-      }
-
-      document.cookie = `${IMPERSONATION_META_COOKIE}=; path=/; max-age=0`;
-      window.location.assign("/");
-    } catch {
-      window.location.assign("/");
+    const result = await switchBackToAdmin();
+    if (result?.error) {
+      setSwitchingBack(false);
+      alert(result.error);
+      return;
     }
+
+    document.cookie = `${IMPERSONATION_META_COOKIE}=; path=/; max-age=0`;
+    window.location.assign("/users");
   }
 
   return (
