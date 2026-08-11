@@ -6,16 +6,6 @@ export type ImpersonationMeta = {
   staffName: string;
 };
 
-function parseImpersonationMeta(raw: string | undefined): ImpersonationMeta | null {
-  if (!raw) return null;
-
-  try {
-    return JSON.parse(raw) as ImpersonationMeta;
-  } catch {
-    return null;
-  }
-}
-
 export function readImpersonationMeta(): ImpersonationMeta | null {
   if (typeof document === "undefined") return null;
 
@@ -23,5 +13,9 @@ export function readImpersonationMeta(): ImpersonationMeta | null {
   const entry = document.cookie.split("; ").find((row) => row.startsWith(prefix));
   if (!entry) return null;
 
-  return parseImpersonationMeta(decodeURIComponent(entry.slice(prefix.length)));
+  try {
+    return JSON.parse(decodeURIComponent(entry.slice(prefix.length))) as ImpersonationMeta;
+  } catch {
+    return null;
+  }
 }
