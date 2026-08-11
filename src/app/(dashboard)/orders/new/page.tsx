@@ -4,9 +4,11 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Input, Label, Select, Textarea } from "@/components/ui/input";
+import { Input, Label, Select } from "@/components/ui/input";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { LeadAddressFields } from "@/components/leads/lead-address-fields";
 import { PageHeader } from "@/components/layout/page-header";
+import { EMPTY_LEAD_ADDRESS, formatLeadAddress, type LeadAddress } from "@/lib/address";
 import { STAFF_ROLES } from "@/lib/roles";
 import { ORDER_STATUSES, type ProductLineItem, type Profile } from "@/lib/types/database";
 import { Plus, Trash2 } from "lucide-react";
@@ -22,13 +24,13 @@ export default function NewOrderPage() {
   const [form, setForm] = useState({
     customer_name: "",
     phone: "",
-    address: "",
     discount: 0,
     advance_payment: 0,
     delivery_date: "",
     status: "pending",
     assigned_to: "",
   });
+  const [address, setAddress] = useState<LeadAddress>(EMPTY_LEAD_ADDRESS);
 
   useEffect(() => {
     supabase
@@ -61,7 +63,7 @@ export default function NewOrderPage() {
       .insert({
         customer_name: form.customer_name,
         phone: form.phone,
-        address: form.address || null,
+        address: formatLeadAddress(address),
         product_details: products.filter((p) => p.name),
         subtotal,
         discount: form.discount,
@@ -110,11 +112,10 @@ export default function NewOrderPage() {
               />
             </div>
             <div className="sm:col-span-2">
-              <Label>Delivery Address</Label>
-              <Textarea
-                rows={2}
-                value={form.address}
-                onChange={(e) => setForm({ ...form, address: e.target.value })}
+              <LeadAddressFields
+                value={address}
+                onChange={setAddress}
+                title="Site / customer address"
               />
             </div>
           </CardContent>

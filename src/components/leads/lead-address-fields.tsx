@@ -10,9 +10,11 @@ import {
 export function LeadAddressFields({
   value,
   onChange,
+  title = "Address",
 }: {
   value: LeadAddress;
   onChange: (value: LeadAddress) => void;
+  title?: string;
 }) {
   const showKeralaDistricts = value.state === "Kerala";
 
@@ -22,7 +24,7 @@ export function LeadAddressFields({
 
   return (
     <div className="space-y-4 rounded-lg border border-stone-100 bg-stone-50/50 p-4">
-      <p className="text-sm font-medium text-stone-800">Address</p>
+      <p className="text-sm font-medium text-stone-800">{title}</p>
 
       <div>
         <Label htmlFor="address_line1">Address line 1</Label>
