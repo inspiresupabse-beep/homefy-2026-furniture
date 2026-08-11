@@ -9,12 +9,21 @@ import { Button } from "@/components/ui/button";
 import { Input, Label, Textarea } from "@/components/ui/input";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { ORDER_STATUSES, type Logistics, type Order, type ProductLineItem } from "@/lib/types/database";
-import { ArrowLeft, Truck, FileText } from "lucide-react";
+import { ArrowLeft, FileText, Pencil, Trash2, Truck } from "lucide-react";
 
-export function OrderDetail({ order }: { order: Order }) {
+export function OrderDetail({
+  order,
+  canEdit = true,
+  canDelete = false,
+}: {
+  order: Order;
+  canEdit?: boolean;
+  canDelete?: boolean;
+}) {
   const router = useRouter();
   const supabase = createClient();
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const logistics = (Array.isArray(order.logistics) ? order.logistics[0] : order.logistics) as Logistics | null;
 
   const [transport, setTransport] = useState({
@@ -69,6 +78,28 @@ export function OrderDetail({ order }: { order: Order }) {
     router.refresh();
   }
 
+  async function handleDelete() {
+    if (
+      !confirm(
+        `Delete order ${order.order_number} for ${order.customer_name}? This cannot be undone.`
+      )
+    ) {
+      return;
+    }
+
+    setDeleting(true);
+    const { error } = await supabase.from("orders").delete().eq("id", order.id);
+    setDeleting(false);
+
+    if (error) {
+      alert(error.message);
+      return;
+    }
+
+    router.push("/orders");
+    router.refresh();
+  }
+
   const statusLabel = ORDER_STATUSES.find((s) => s.value === order.status)?.label;
 
   return (
@@ -89,11 +120,31 @@ export function OrderDetail({ order }: { order: Order }) {
             </p>
           </div>
         </div>
-        <Link href={`/orders/${order.id}/invoice`} className="self-start">
-          <Button variant="secondary" size="sm">
-            <FileText className="mr-1 h-4 w-4" /> Sales Order / Invoice
-          </Button>
-        </Link>
+        <div className="flex flex-wrap items-center gap-2 self-start">
+          {canEdit && (
+            <Link href={`/orders/${order.id}/edit`}>
+              <Button variant="secondary" size="sm">
+                <Pencil className="mr-1 h-4 w-4" /> Edit
+              </Button>
+            </Link>
+          )}
+          {canDelete && (
+            <Button
+              variant="danger"
+              size="sm"
+              onClick={handleDelete}
+              disabled={deleting}
+            >
+              <Trash2 className="mr-1 h-4 w-4" />
+              {deleting ? "Deleting..." : "Delete"}
+            </Button>
+          )}
+          <Link href={`/orders/${order.id}/invoice`}>
+            <Button variant="secondary" size="sm">
+              <FileText className="mr-1 h-4 w-4" /> Sales Order / Invoice
+            </Button>
+          </Link>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-2">

@@ -67,6 +67,47 @@ export function formatLeadAddress(address: Partial<LeadAddress>): string | null 
   return parts.join("\n") || null;
 }
 
+export function parseFormattedAddress(address: string | null | undefined): LeadAddress {
+  if (!address?.trim()) return { ...EMPTY_LEAD_ADDRESS };
+
+  const lines = address.split("\n").map((line) => line.trim()).filter(Boolean);
+  if (lines.length === 0) return { ...EMPTY_LEAD_ADDRESS };
+
+  const result = { ...EMPTY_LEAD_ADDRESS };
+  let remaining = [...lines];
+
+  const lastLine = remaining[remaining.length - 1]!;
+  const pinMatch = lastLine.match(/^(.+?)\s*-\s*(\d{6})$/);
+  if (pinMatch) {
+    result.state = pinMatch[1]!.trim();
+    result.pin_code = pinMatch[2]!;
+    remaining = remaining.slice(0, -1);
+  }
+
+  if (remaining.length > 0) {
+    const cityDistrictLine = remaining[remaining.length - 1]!;
+    if (cityDistrictLine.includes(",")) {
+      const [city, district] = cityDistrictLine.split(",").map((part) => part.trim());
+      result.city = city ?? "";
+      result.district = district ?? "";
+      remaining = remaining.slice(0, -1);
+    }
+  }
+
+  if (remaining.length >= 1) {
+    result.address_line1 = remaining[0] ?? "";
+  }
+  if (remaining.length >= 2) {
+    result.address_line2 = remaining.slice(1).join(", ");
+  }
+
+  if (lines.length === 1 && !result.city && !result.district && !result.pin_code) {
+    result.address_line1 = lines[0]!;
+  }
+
+  return result;
+}
+
 export function leadAddressFromLead(lead: {
   address_line1?: string | null;
   address_line2?: string | null;

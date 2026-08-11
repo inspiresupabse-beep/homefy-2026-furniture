@@ -9,9 +9,15 @@ import { DashboardPageSkeleton } from "@/components/layout/dashboard-page-skelet
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ORDER_STATUSES, type Order } from "@/lib/types/database";
-import { Plus } from "lucide-react";
+import { Plus, Pencil, Trash2 } from "lucide-react";
 
-export default function OrdersPageClient() {
+export default function OrdersPageClient({
+  canEdit,
+  canDelete,
+}: {
+  canEdit: boolean;
+  canDelete: boolean;
+}) {
   const supabaseRef = useRef(createClient());
   const [orderList, setOrderList] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
@@ -32,6 +38,24 @@ export default function OrdersPageClient() {
 
   const statusLabel = (status: string) =>
     ORDER_STATUSES.find((s) => s.value === status)?.label ?? status;
+
+  async function handleDelete(order: Order) {
+    if (
+      !confirm(
+        `Delete order ${order.order_number} for ${order.customer_name}? This cannot be undone.`
+      )
+    ) {
+      return;
+    }
+
+    const { error } = await supabaseRef.current.from("orders").delete().eq("id", order.id);
+    if (error) {
+      alert(error.message);
+      return;
+    }
+
+    void fetchOrders();
+  }
 
   if (loading) return <DashboardPageSkeleton />;
 
@@ -99,6 +123,28 @@ export default function OrdersPageClient() {
                   </p>
                 </div>
               </div>
+              <div className="flex flex-wrap gap-2 pt-1">
+                {canEdit && (
+                  <Link href={`/orders/${order.id}/edit`}>
+                    <Button type="button" size="sm" variant="secondary" className="gap-1.5">
+                      <Pencil className="h-3.5 w-3.5" />
+                      Edit
+                    </Button>
+                  </Link>
+                )}
+                {canDelete && (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="danger"
+                    className="gap-1.5"
+                    onClick={() => handleDelete(order)}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                    Delete
+                  </Button>
+                )}
+              </div>
             </CardContent>
           </Card>
         ))}
@@ -123,6 +169,9 @@ export default function OrdersPageClient() {
                   <th className="px-4 py-3 font-medium lg:px-6">Delivery</th>
                   <th className="px-4 py-3 font-medium lg:px-6">Status</th>
                   <th className="px-4 py-3 font-medium lg:px-6">Agent</th>
+                  {(canEdit || canDelete) && (
+                    <th className="px-4 py-3 font-medium lg:px-6">Actions</th>
+                  )}
                 </tr>
               </thead>
               <tbody>
@@ -170,11 +219,37 @@ export default function OrdersPageClient() {
                     <td className="px-4 py-4 text-stone-500 lg:px-6">
                       {(order.assigned_agent as { full_name: string } | null)?.full_name ?? "—"}
                     </td>
+                    {(canEdit || canDelete) && (
+                      <td className="px-4 py-4 lg:px-6">
+                        <div className="flex flex-wrap gap-2">
+                          {canEdit && (
+                            <Link href={`/orders/${order.id}/edit`}>
+                              <Button type="button" size="sm" variant="secondary" className="gap-1.5">
+                                <Pencil className="h-3.5 w-3.5" />
+                                Edit
+                              </Button>
+                            </Link>
+                          )}
+                          {canDelete && (
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="danger"
+                              className="gap-1.5"
+                              onClick={() => handleDelete(order)}
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                              Delete
+                            </Button>
+                          )}
+                        </div>
+                      </td>
+                    )}
                   </tr>
                 ))}
                 {orderList.length === 0 && (
                   <tr>
-                    <td colSpan={8} className="px-6 py-12 text-center text-stone-400">
+                    <td colSpan={canEdit || canDelete ? 9 : 8} className="px-6 py-12 text-center text-stone-400">
                       No orders yet. Create your first order to get started.
                     </td>
                   </tr>
