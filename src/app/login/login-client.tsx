@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { AddToHomeScreen } from "@/components/layout/add-to-home-screen";
 import { HomefyLogo } from "@/components/layout/homefy-logo";
 import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/input";
@@ -113,11 +112,6 @@ export default function LoginPageClient() {
               <Button type="button" variant="secondary" className="w-full" onClick={() => setMode("signin")}>
                 Back to sign in
               </Button>
-            </div>
-          )}
-          {mode === "signin" && (
-            <div className="mt-4 border-t border-stone-100 pt-4">
-              <AddToHomeScreen />
             </div>
           )}
         </CardContent>

@@ -4,7 +4,6 @@ import { LogOut, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { formatRole } from "@/lib/roles";
-import { AddToHomeScreen } from "@/components/layout/add-to-home-screen";
 import { HomefyLogo } from "@/components/layout/homefy-logo";
 import { SidebarNav } from "@/components/layout/sidebar-nav";
 import type { Profile } from "@/lib/types/database";
@@ -67,10 +66,6 @@ export function Sidebar({
       </div>
 
       <SidebarNav profile={profile} onNavigate={onNavigate} className="min-h-0 flex-1 overflow-y-auto" />
-
-      <div className="shrink-0 border-t border-stone-800 p-3">
-        <AddToHomeScreen variant="sidebar" />
-      </div>
     </aside>
   );
 }
