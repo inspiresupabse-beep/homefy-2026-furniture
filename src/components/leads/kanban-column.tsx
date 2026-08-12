@@ -31,7 +31,7 @@ export function KanbanColumn({ status, leads, agents, orderByLeadId, onAssign, o
     <div
       ref={setNodeRef}
       className={cn(
-        "flex max-h-[calc(100dvh-11.5rem)] min-h-[280px] flex-col rounded-xl border bg-stone-50/80 transition-colors sm:max-h-[calc(100dvh-13rem)] lg:max-h-[calc(100dvh-12rem)]",
+        "flex max-h-[min(720px,calc(100dvh-14rem))] min-h-[240px] flex-col rounded-xl border bg-stone-50/80 transition-colors",
         isOver ? "border-amber-400 bg-amber-50/50" : "border-stone-200"
       )}
     >

@@ -167,14 +167,15 @@ export default function LeadsPageClient({ isAdmin }: { isAdmin: boolean }) {
     if (!status) return;
 
     requestAnimationFrame(() => {
-      columnRefs.current[status]?.scrollIntoView({
+      const column = columnRefs.current[status];
+      const container = pipelineRef.current;
+      if (!column || !container) return;
+
+      const scrollLeft =
+        column.offsetLeft - (container.clientWidth - column.offsetWidth) / 2;
+      container.scrollTo({
+        left: Math.max(0, scrollLeft),
         behavior: "smooth",
-        inline: "center",
-        block: "nearest",
-      });
-      pipelineRef.current?.scrollIntoView({
-        behavior: "smooth",
-        block: "start",
       });
     });
   }, []);
@@ -296,31 +297,33 @@ export default function LeadsPageClient({ isAdmin }: { isAdmin: boolean }) {
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
       >
-        <div
-          ref={pipelineRef}
-          className="-mx-4 overflow-x-auto px-4 pb-2 scroll-smooth snap-x snap-mandatory [-webkit-overflow-scrolling:touch] lg:mx-0 lg:overflow-x-visible lg:px-0 lg:snap-none"
-          onTouchStart={(e) => handlePipelineTouchStart(e.changedTouches[0]?.clientX ?? 0)}
-          onTouchEnd={(e) => handlePipelineTouchEnd(e.changedTouches[0]?.clientX ?? 0)}
-        >
-          <div className="flex w-max gap-4 lg:w-full lg:grid lg:grid-cols-3 xl:grid-cols-6">
-          {LEAD_STATUSES.map((status) => (
-            <div
-              key={status.value}
-              ref={(el) => {
-                columnRefs.current[status.value] = el;
-              }}
-              className="w-[min(100vw-2rem,20rem)] shrink-0 snap-center lg:w-full"
-            >
-              <KanbanColumn
-                status={status}
-                leads={getLeadsByStatus(status.value)}
-                agents={agents}
-                orderByLeadId={orderByLeadId}
-                onAssign={handleAssign}
-                onOpenLead={setDetailLead}
-              />
+        <div className="-mx-4 sm:-mx-6 lg:-mx-8">
+          <div
+            ref={pipelineRef}
+            className="overflow-x-auto px-4 pb-2 scroll-smooth snap-x snap-mandatory [-webkit-overflow-scrolling:touch] sm:px-6 lg:px-8"
+            onTouchStart={(e) => handlePipelineTouchStart(e.changedTouches[0]?.clientX ?? 0)}
+            onTouchEnd={(e) => handlePipelineTouchEnd(e.changedTouches[0]?.clientX ?? 0)}
+          >
+            <div className="flex w-max items-start gap-3 sm:gap-4">
+              {LEAD_STATUSES.map((status) => (
+                <div
+                  key={status.value}
+                  ref={(el) => {
+                    columnRefs.current[status.value] = el;
+                  }}
+                  className="w-[min(85vw,17.5rem)] shrink-0 snap-center sm:w-72"
+                >
+                  <KanbanColumn
+                    status={status}
+                    leads={getLeadsByStatus(status.value)}
+                    agents={agents}
+                    orderByLeadId={orderByLeadId}
+                    onAssign={handleAssign}
+                    onOpenLead={setDetailLead}
+                  />
+                </div>
+              ))}
             </div>
-          ))}
           </div>
         </div>
         <DragOverlay>
