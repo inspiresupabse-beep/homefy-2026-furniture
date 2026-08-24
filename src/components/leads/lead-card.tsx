@@ -99,7 +99,6 @@ export function LeadCard({
               Assign to
             </div>
             <Select
-              className="text-xs"
               value={lead.assigned_to ?? ""}
               onChange={(e) => onAssign(lead.id, e.target.value || null)}
               onPointerDown={(e) => e.stopPropagation()}

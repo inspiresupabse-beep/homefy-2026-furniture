@@ -25,18 +25,16 @@ body {
   touch-action: manipulation;
 }
 
-/* iOS Safari auto-zooms inputs below 16px — never shrink form controls on touch devices */
-@layer base {
-  input,
-  select,
-  textarea {
-    font-size: 16px;
-    touch-action: manipulation;
-  }
+button,
+a,
+[role="button"] {
+  touch-action: manipulation;
+}
 
-  button,
-  a,
-  [role="button"] {
-    touch-action: manipulation;
-  }
+/* iOS Safari auto-zooms focused inputs below 16px — lock form control size everywhere */
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]),
+select,
+textarea {
+  font-size: 16px !important;
+  touch-action: manipulation;
 }
