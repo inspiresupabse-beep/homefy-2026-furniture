@@ -228,7 +228,11 @@ export default function DailyReportStaffClient() {
       return;
     }
 
-    const result = await sendMessageViaListener(DAILY_REPORT_BOSS_PHONE, whatsappMessage);
+    const result = await sendMessageViaListener(
+      DAILY_REPORT_BOSS_PHONE,
+      whatsappMessage,
+      profile?.full_name
+    );
     setSending(false);
 
     if (!result.ok) {

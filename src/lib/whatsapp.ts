@@ -14,21 +14,43 @@ export function buildWhatsAppUrl(phone: string, message?: string): string {
   return `${base}?text=${encodeURIComponent(message.trim())}`;
 }
 
-export function defaultLeadMessage(customerName: string): string {
-  return `Hi ${customerName}, this is Homefy. How can we help you with your furniture needs today?`;
+export function whatsAppSenderLabel(senderName?: string | null): string {
+  const name = senderName?.trim();
+  return name ? `${name} from Homefy` : "Homefy";
 }
 
-export function defaultFollowUpMessage(customerName: string, reminderTitle: string): string {
-  return `Hi ${customerName}, this is Homefy regarding your inquiry — ${reminderTitle}. Please let us know a good time to connect.`;
+export const WHATSAPP_LINK_REQUIRED_MESSAGE = "Please link your WhatsApp first.";
+
+export function isWhatsAppLinked(profile: { phone?: string | null } | null | undefined): boolean {
+  if (!profile?.phone) return false;
+  const digits = profile.phone.replace(/\D/g, "");
+  return digits.length >= 10;
 }
 
-export function defaultOrderMessage(customerName: string, orderNumber: string): string {
-  return `Hi ${customerName}, this is Homefy about your order ${orderNumber}. Please share if you have any questions.`;
+export function defaultLeadMessage(customerName: string, senderName?: string | null): string {
+  return `Hi ${customerName}, this is ${whatsAppSenderLabel(senderName)}. How can we help you with your furniture needs today?`;
+}
+
+export function defaultFollowUpMessage(
+  customerName: string,
+  reminderTitle: string,
+  senderName?: string | null
+): string {
+  return `Hi ${customerName}, this is ${whatsAppSenderLabel(senderName)} regarding your inquiry — ${reminderTitle}. Please let us know a good time to connect.`;
+}
+
+export function defaultOrderMessage(
+  customerName: string,
+  orderNumber: string,
+  senderName?: string | null
+): string {
+  return `Hi ${customerName}, this is ${whatsAppSenderLabel(senderName)} about your order ${orderNumber}. Please share if you have any questions.`;
 }
 
 export async function sendMessageViaListener(
   phone: string,
-  message: string
+  message: string,
+  senderName?: string | null
 ): Promise<{ ok: boolean; error?: string }> {
   const { whatsAppListenerApi } = await import("@/lib/whatsapp-listener-config");
   const url = whatsAppListenerApi("/api/send");
@@ -38,7 +60,7 @@ export async function sendMessageViaListener(
     const res = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ phone, message }),
+      body: JSON.stringify({ phone, message, senderName: senderName ?? undefined }),
     });
     const data = await res.json();
     if (!res.ok) return { ok: false, error: data.error || "Send failed" };

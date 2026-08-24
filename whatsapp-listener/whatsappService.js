@@ -197,8 +197,9 @@ async function sendMessageToPhone(phone, text) {
   };
 }
 
-async function sendLeadReminder(phone, customerName, reminderText) {
-  const message = `Hi ${customerName},\n\nThis is Homefy with an update on your inquiry:\n\n${reminderText}\n\nPlease reply if you have any questions.`;
+async function sendLeadReminder(phone, customerName, reminderText, senderName) {
+  const from = senderName?.trim() ? `${senderName.trim()} from Homefy` : "Homefy";
+  const message = `Hi ${customerName},\n\nThis is ${from} with an update on your inquiry:\n\n${reminderText}\n\nPlease reply if you have any questions.`;
   return sendMessageToPhone(phone, message);
 }
 

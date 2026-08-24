@@ -11,6 +11,7 @@ import {
   sendViaListener,
   type ListenerStatus,
 } from "@/components/whatsapp/whatsapp-listener-panel";
+import { UserWhatsAppLink } from "@/components/whatsapp/user-whatsapp-link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import {
@@ -18,8 +19,10 @@ import {
   defaultFollowUpMessage,
   defaultLeadMessage,
   defaultOrderMessage,
+  isWhatsAppLinked,
+  WHATSAPP_LINK_REQUIRED_MESSAGE,
 } from "@/lib/whatsapp";
-import { getLeadStatusLabel, type Lead, type LeadReminder, type Order } from "@/lib/types/database";
+import { getLeadStatusLabel, type Lead, type LeadReminder, type Order, type Profile } from "@/lib/types/database";
 import { ExternalLink, Flame, Bell, Package, Send } from "lucide-react";
 
 type DeliveryReminderRow = {
@@ -37,24 +40,35 @@ function WhatsAppLinkButton({
   message,
   label = "WhatsApp",
   compact,
+  whatsAppLinked,
+  onRequireLink,
 }: {
   phone: string;
   message?: string;
   label?: string;
   compact?: boolean;
+  whatsAppLinked: boolean;
+  onRequireLink: () => void;
 }) {
+  function handleClick() {
+    if (!whatsAppLinked) {
+      onRequireLink();
+      return;
+    }
+    window.open(buildWhatsAppUrl(phone, message), "_blank", "noopener,noreferrer");
+  }
+
   return (
-    <a href={buildWhatsAppUrl(phone, message)} target="_blank" rel="noopener noreferrer" className="inline-flex">
-      <Button
-        type="button"
-        size={compact ? "sm" : "md"}
-        className="gap-2 bg-[#25D366] text-white hover:bg-[#1da851]"
-      >
-        <WhatsAppIcon className={compact ? "h-3.5 w-3.5" : "h-4 w-4"} />
-        {label}
-        <ExternalLink className="h-3 w-3 opacity-70" />
-      </Button>
-    </a>
+    <Button
+      type="button"
+      size={compact ? "sm" : "md"}
+      className="gap-2 bg-[#25D366] text-white hover:bg-[#1da851]"
+      onClick={handleClick}
+    >
+      <WhatsAppIcon className={compact ? "h-3.5 w-3.5" : "h-4 w-4"} />
+      {label}
+      <ExternalLink className="h-3 w-3 opacity-70" />
+    </Button>
   );
 }
 
@@ -62,24 +76,33 @@ function LinkedSendButton({
   phone,
   customerName,
   message,
+  senderName,
   listenerReady,
+  whatsAppLinked,
+  onRequireLink,
   compact,
 }: {
   phone: string;
   customerName: string;
   message: string;
+  senderName?: string | null;
   listenerReady: boolean;
+  whatsAppLinked: boolean;
+  onRequireLink: () => void;
   compact?: boolean;
 }) {
   const [sending, setSending] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
 
-  if (!listenerReady) return null;
-
   async function handleSend() {
+    if (!whatsAppLinked || !listenerReady) {
+      onRequireLink();
+      return;
+    }
+
     setSending(true);
     setFeedback(null);
-    const result = await sendViaListener(phone, customerName, message);
+    const result = await sendViaListener(phone, customerName, message, senderName);
     setSending(false);
     setFeedback(result.ok ? "Sent!" : result.error ?? "Failed");
     if (result.ok) setTimeout(() => setFeedback(null), 3000);
@@ -116,8 +139,16 @@ export default function WhatsAppPageClient() {
   const [recentOrders, setRecentOrders] = useState<Order[]>([]);
   const [deliveryReminders, setDeliveryReminders] = useState<DeliveryReminderRow[]>([]);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [profile, setProfile] = useState<Profile | null>(null);
 
   const listenerReady = listenerStatus === "ready";
+  const senderName = profile?.full_name ?? null;
+  const whatsAppLinked = isWhatsAppLinked(profile);
+  const [linkNotice, setLinkNotice] = useState<string | null>(null);
+
+  function showLinkRequiredNotice() {
+    setLinkNotice(WHATSAPP_LINK_REQUIRED_MESSAGE);
+  }
 
   const fetchData = useCallback(async () => {
     const supabase = supabaseRef.current;
@@ -129,12 +160,13 @@ export default function WhatsAppPageClient() {
 
     const { data: profile } = await supabase
       .from("profiles")
-      .select("role")
+      .select("*")
       .eq("id", user.id)
       .single();
 
     const admin = profile?.role === "admin";
     setIsAdmin(admin);
+    setProfile((profile as Profile) ?? null);
 
     const now = new Date().toISOString();
 
@@ -197,8 +229,38 @@ export default function WhatsAppPageClient() {
     <div className="space-y-6 sm:space-y-8">
       <PageHeader
         title="WhatsApp"
-        description="Link WhatsApp, message customers, and follow up on leads & orders"
+        description="Link your WhatsApp number and message customers with your name"
       />
+
+      {profile && (
+        <UserWhatsAppLink
+          profile={profile}
+          onSaved={(next) => {
+            setProfile(next);
+            setLinkNotice(null);
+          }}
+        />
+      )}
+
+      {linkNotice && (
+        <div
+          className="rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-950"
+          role="alert"
+        >
+          <p className="font-medium">{linkNotice}</p>
+          <p className="mt-1 text-amber-800">
+            Save your WhatsApp number above{!listenerReady ? " and scan the QR below" : ""} before
+            messaging customers.
+          </p>
+          <button
+            type="button"
+            className="mt-2 text-xs font-medium text-amber-900 underline"
+            onClick={() => setLinkNotice(null)}
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
 
       <WhatsAppListenerPanel onStatusChange={setListenerStatus} />
 
@@ -215,7 +277,7 @@ export default function WhatsAppPageClient() {
             {dueReminders.map((reminder) => {
               const lead = reminder.lead;
               if (!lead?.phone) return null;
-              const msg = defaultFollowUpMessage(lead.customer_name, reminder.title);
+              const msg = defaultFollowUpMessage(lead.customer_name, reminder.title, senderName);
               return (
                 <div
                   key={reminder.id}
@@ -231,10 +293,19 @@ export default function WhatsAppPageClient() {
                       phone={lead.phone}
                       customerName={lead.customer_name}
                       message={reminder.title}
+                      senderName={senderName}
                       listenerReady={listenerReady}
+                      whatsAppLinked={whatsAppLinked}
+                      onRequireLink={showLinkRequiredNotice}
                       compact
                     />
-                    <WhatsAppLinkButton phone={lead.phone} message={msg} compact />
+                    <WhatsAppLinkButton
+                      phone={lead.phone}
+                      message={msg}
+                      compact
+                      whatsAppLinked={whatsAppLinked}
+                      onRequireLink={showLinkRequiredNotice}
+                    />
                   </div>
                 </div>
               );
@@ -273,13 +344,18 @@ export default function WhatsAppPageClient() {
                     phone={lead.phone}
                     customerName={lead.customer_name}
                     message="Following up on your furniture inquiry"
+                    senderName={senderName}
                     listenerReady={listenerReady}
+                    whatsAppLinked={whatsAppLinked}
+                    onRequireLink={showLinkRequiredNotice}
                     compact
                   />
                   <WhatsAppLinkButton
                     phone={lead.phone}
-                    message={defaultLeadMessage(lead.customer_name)}
+                    message={defaultLeadMessage(lead.customer_name, senderName)}
                     compact
+                    whatsAppLinked={whatsAppLinked}
+                    onRequireLink={showLinkRequiredNotice}
                   />
                   <Link href={`/leads?open=${lead.id}`}>
                     <Button variant="secondary" size="sm">
@@ -321,13 +397,18 @@ export default function WhatsAppPageClient() {
                     phone={order.phone}
                     customerName={order.customer_name}
                     message={`Update on your order ${order.order_number}`}
+                    senderName={senderName}
                     listenerReady={listenerReady}
+                    whatsAppLinked={whatsAppLinked}
+                    onRequireLink={showLinkRequiredNotice}
                     compact
                   />
                   <WhatsAppLinkButton
                     phone={order.phone}
-                    message={defaultOrderMessage(order.customer_name, order.order_number)}
+                    message={defaultOrderMessage(order.customer_name, order.order_number, senderName)}
                     compact
+                    whatsAppLinked={whatsAppLinked}
+                    onRequireLink={showLinkRequiredNotice}
                   />
                 </div>
               </div>
@@ -365,10 +446,19 @@ export default function WhatsAppPageClient() {
                       phone={reminder.phone}
                       customerName={reminder.order?.customer_name ?? "Customer"}
                       message={reminder.message}
+                      senderName={senderName}
                       listenerReady={listenerReady}
+                      whatsAppLinked={whatsAppLinked}
+                      onRequireLink={showLinkRequiredNotice}
                       compact
                     />
-                    <WhatsAppLinkButton phone={reminder.phone} message={reminder.message} compact />
+                    <WhatsAppLinkButton
+                      phone={reminder.phone}
+                      message={reminder.message}
+                      compact
+                      whatsAppLinked={whatsAppLinked}
+                      onRequireLink={showLinkRequiredNotice}
+                    />
                   </div>
                 </div>
               </div>

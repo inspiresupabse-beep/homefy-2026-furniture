@@ -69,13 +69,13 @@ app.post("/api/send", async (req, res) => {
 
 app.post("/api/send-lead-reminder", async (req, res) => {
   try {
-    const { phone, customerName, reminder } = req.body;
+    const { phone, customerName, reminder, senderName } = req.body;
     if (!phone || !customerName || !reminder) {
       return res.status(400).json({
         error: "phone, customerName, and reminder are required",
       });
     }
-    const sent = await sendLeadReminder(phone, customerName, reminder);
+    const sent = await sendLeadReminder(phone, customerName, reminder, senderName);
     io.emit("message-sent", sent);
     res.json({ ok: true, sent });
   } catch (err) {

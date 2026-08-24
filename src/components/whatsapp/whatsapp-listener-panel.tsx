@@ -173,7 +173,7 @@ export function WhatsAppListenerPanel({ onStatusChange }: Props) {
             <div>
               <h2 className="font-semibold text-stone-900">Linked WhatsApp</h2>
               <p className="text-sm text-stone-500">
-                Scan QR once to listen to your group & send messages from Homefy
+                Scan QR with your phone to link WhatsApp for PC sending (optional)
               </p>
             </div>
           </div>
@@ -301,7 +301,8 @@ export function WhatsAppListenerPanel({ onStatusChange }: Props) {
 export async function sendViaListener(
   phone: string,
   customerName: string,
-  reminder: string
+  reminder: string,
+  senderName?: string | null
 ): Promise<{ ok: boolean; error?: string }> {
   const url = whatsAppListenerApi("/api/send-lead-reminder");
   if (!url) return { ok: false, error: "Listener URL not configured" };
@@ -310,7 +311,7 @@ export async function sendViaListener(
     const res = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ phone, customerName, reminder }),
+      body: JSON.stringify({ phone, customerName, reminder, senderName: senderName ?? undefined }),
     });
     const data = await res.json();
     if (!res.ok) return { ok: false, error: data.error || "Send failed" };
