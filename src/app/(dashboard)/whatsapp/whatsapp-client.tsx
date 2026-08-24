@@ -19,7 +19,7 @@ import {
   defaultFollowUpMessage,
   defaultLeadMessage,
   defaultOrderMessage,
-  isWhatsAppLinked,
+  getWhatsAppSendBlockReason,
   WHATSAPP_LINK_REQUIRED_MESSAGE,
 } from "@/lib/whatsapp";
 import { getLeadStatusLabel, type Lead, type LeadReminder, type Order, type Profile } from "@/lib/types/database";
@@ -40,19 +40,19 @@ function WhatsAppLinkButton({
   message,
   label = "WhatsApp",
   compact,
-  whatsAppLinked,
-  onRequireLink,
+  sendBlockReason,
+  onBlocked,
 }: {
   phone: string;
   message?: string;
   label?: string;
   compact?: boolean;
-  whatsAppLinked: boolean;
-  onRequireLink: () => void;
+  sendBlockReason: string | null;
+  onBlocked: (message: string) => void;
 }) {
   function handleClick() {
-    if (!whatsAppLinked) {
-      onRequireLink();
+    if (sendBlockReason) {
+      onBlocked(sendBlockReason);
       return;
     }
     window.open(buildWhatsAppUrl(phone, message), "_blank", "noopener,noreferrer");
@@ -77,32 +77,44 @@ function LinkedSendButton({
   customerName,
   message,
   senderName,
+  expectedSenderPhone,
   listenerReady,
-  whatsAppLinked,
-  onRequireLink,
+  sendBlockReason,
+  onBlocked,
   compact,
 }: {
   phone: string;
   customerName: string;
   message: string;
   senderName?: string | null;
+  expectedSenderPhone?: string | null;
   listenerReady: boolean;
-  whatsAppLinked: boolean;
-  onRequireLink: () => void;
+  sendBlockReason: string | null;
+  onBlocked: (message: string) => void;
   compact?: boolean;
 }) {
   const [sending, setSending] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
 
   async function handleSend() {
-    if (!whatsAppLinked || !listenerReady) {
-      onRequireLink();
+    if (sendBlockReason) {
+      onBlocked(sendBlockReason);
+      return;
+    }
+    if (!listenerReady) {
+      onBlocked(WHATSAPP_LINK_REQUIRED_MESSAGE);
       return;
     }
 
     setSending(true);
     setFeedback(null);
-    const result = await sendViaListener(phone, customerName, message, senderName);
+    const result = await sendViaListener(
+      phone,
+      customerName,
+      message,
+      senderName,
+      expectedSenderPhone
+    );
     setSending(false);
     setFeedback(result.ok ? "Sent!" : result.error ?? "Failed");
     if (result.ok) setTimeout(() => setFeedback(null), 3000);
@@ -134,6 +146,7 @@ export default function WhatsAppPageClient() {
   const supabaseRef = useRef(createClient());
   const [loading, setLoading] = useState(true);
   const [listenerStatus, setListenerStatus] = useState<ListenerStatus>("connecting");
+  const [linkedPhone, setLinkedPhone] = useState<string | null>(null);
   const [dueReminders, setDueReminders] = useState<LeadReminder[]>([]);
   const [hotLeads, setHotLeads] = useState<Lead[]>([]);
   const [recentOrders, setRecentOrders] = useState<Order[]>([]);
@@ -143,11 +156,11 @@ export default function WhatsAppPageClient() {
 
   const listenerReady = listenerStatus === "ready";
   const senderName = profile?.full_name ?? null;
-  const whatsAppLinked = isWhatsAppLinked(profile);
+  const sendBlockReason = getWhatsAppSendBlockReason(profile, linkedPhone, listenerReady);
   const [linkNotice, setLinkNotice] = useState<string | null>(null);
 
-  function showLinkRequiredNotice() {
-    setLinkNotice(WHATSAPP_LINK_REQUIRED_MESSAGE);
+  function showSendBlockedNotice(message: string) {
+    setLinkNotice(message);
   }
 
   const fetchData = useCallback(async () => {
@@ -244,14 +257,26 @@ export default function WhatsAppPageClient() {
 
       {linkNotice && (
         <div
-          className="rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-950"
+          className={`rounded-lg border px-4 py-3 text-sm ${
+            sendBlockReason && linkNotice.includes("Wrong WhatsApp")
+              ? "border-red-300 bg-red-50 text-red-950"
+              : "border-amber-300 bg-amber-50 text-amber-950"
+          }`}
           role="alert"
         >
           <p className="font-medium">{linkNotice}</p>
-          <p className="mt-1 text-amber-800">
-            Save your WhatsApp number above{!listenerReady ? " and scan the QR below" : ""} before
-            messaging customers.
-          </p>
+          {!sendBlockReason && (
+            <p className="mt-1 text-amber-800">
+              Save your WhatsApp number above{!listenerReady ? " and scan the QR below" : ""} before
+              messaging customers.
+            </p>
+          )}
+          {sendBlockReason && linkNotice.includes("Wrong WhatsApp") && (
+            <p className="mt-1 text-red-800">
+              Scan the QR below with your own WhatsApp, or update your profile number to match this
+              device.
+            </p>
+          )}
           <button
             type="button"
             className="mt-2 text-xs font-medium text-amber-900 underline"
@@ -262,7 +287,23 @@ export default function WhatsAppPageClient() {
         </div>
       )}
 
-      <WhatsAppListenerPanel onStatusChange={setListenerStatus} />
+      <WhatsAppListenerPanel
+        onStatusChange={setListenerStatus}
+        onListenerChange={({ linkedPhone: lp }) => setLinkedPhone(lp)}
+      />
+
+      {sendBlockReason && listenerReady && (
+        <div
+          className="rounded-lg border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-950"
+          role="alert"
+        >
+          <p className="font-medium">{sendBlockReason}</p>
+          <p className="mt-1 text-red-800">
+            Customer messages are blocked until your profile number matches the WhatsApp logged in on
+            this device.
+          </p>
+        </div>
+      )}
 
       {dueReminders.length > 0 && (
         <Card>
@@ -294,17 +335,18 @@ export default function WhatsAppPageClient() {
                       customerName={lead.customer_name}
                       message={reminder.title}
                       senderName={senderName}
+                      expectedSenderPhone={profile?.phone}
                       listenerReady={listenerReady}
-                      whatsAppLinked={whatsAppLinked}
-                      onRequireLink={showLinkRequiredNotice}
+                      sendBlockReason={sendBlockReason}
+                      onBlocked={showSendBlockedNotice}
                       compact
                     />
                     <WhatsAppLinkButton
                       phone={lead.phone}
                       message={msg}
                       compact
-                      whatsAppLinked={whatsAppLinked}
-                      onRequireLink={showLinkRequiredNotice}
+                      sendBlockReason={sendBlockReason}
+                      onBlocked={showSendBlockedNotice}
                     />
                   </div>
                 </div>
@@ -345,17 +387,18 @@ export default function WhatsAppPageClient() {
                     customerName={lead.customer_name}
                     message="Following up on your furniture inquiry"
                     senderName={senderName}
+                    expectedSenderPhone={profile?.phone}
                     listenerReady={listenerReady}
-                    whatsAppLinked={whatsAppLinked}
-                    onRequireLink={showLinkRequiredNotice}
+                    sendBlockReason={sendBlockReason}
+                    onBlocked={showSendBlockedNotice}
                     compact
                   />
                   <WhatsAppLinkButton
                     phone={lead.phone}
                     message={defaultLeadMessage(lead.customer_name, senderName)}
                     compact
-                    whatsAppLinked={whatsAppLinked}
-                    onRequireLink={showLinkRequiredNotice}
+                    sendBlockReason={sendBlockReason}
+                    onBlocked={showSendBlockedNotice}
                   />
                   <Link href={`/leads?open=${lead.id}`}>
                     <Button variant="secondary" size="sm">
@@ -398,17 +441,18 @@ export default function WhatsAppPageClient() {
                     customerName={order.customer_name}
                     message={`Update on your order ${order.order_number}`}
                     senderName={senderName}
+                    expectedSenderPhone={profile?.phone}
                     listenerReady={listenerReady}
-                    whatsAppLinked={whatsAppLinked}
-                    onRequireLink={showLinkRequiredNotice}
+                    sendBlockReason={sendBlockReason}
+                    onBlocked={showSendBlockedNotice}
                     compact
                   />
                   <WhatsAppLinkButton
                     phone={order.phone}
                     message={defaultOrderMessage(order.customer_name, order.order_number, senderName)}
                     compact
-                    whatsAppLinked={whatsAppLinked}
-                    onRequireLink={showLinkRequiredNotice}
+                    sendBlockReason={sendBlockReason}
+                    onBlocked={showSendBlockedNotice}
                   />
                 </div>
               </div>
@@ -447,17 +491,18 @@ export default function WhatsAppPageClient() {
                       customerName={reminder.order?.customer_name ?? "Customer"}
                       message={reminder.message}
                       senderName={senderName}
+                      expectedSenderPhone={profile?.phone}
                       listenerReady={listenerReady}
-                      whatsAppLinked={whatsAppLinked}
-                      onRequireLink={showLinkRequiredNotice}
+                      sendBlockReason={sendBlockReason}
+                      onBlocked={showSendBlockedNotice}
                       compact
                     />
                     <WhatsAppLinkButton
                       phone={reminder.phone}
                       message={reminder.message}
                       compact
-                      whatsAppLinked={whatsAppLinked}
-                      onRequireLink={showLinkRequiredNotice}
+                      sendBlockReason={sendBlockReason}
+                      onBlocked={showSendBlockedNotice}
                     />
                   </div>
                 </div>

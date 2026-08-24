@@ -1,3 +1,5 @@
+import { formatPhoneDisplay, phonesMatch } from "@/lib/phone";
+
 /** Normalize Indian phone numbers for wa.me links */
 export function normalizeWhatsAppPhone(phone: string): string {
   const digits = phone.replace(/\D/g, "");
@@ -21,10 +23,34 @@ export function whatsAppSenderLabel(senderName?: string | null): string {
 
 export const WHATSAPP_LINK_REQUIRED_MESSAGE = "Please link your WhatsApp first.";
 
+export const WHATSAPP_WRONG_LINKED_MESSAGE =
+  "Wrong WhatsApp linked. The WhatsApp logged in on this device does not match your saved number.";
+
 export function isWhatsAppLinked(profile: { phone?: string | null } | null | undefined): boolean {
   if (!profile?.phone) return false;
   const digits = profile.phone.replace(/\D/g, "");
   return digits.length >= 10;
+}
+
+export function getWhatsAppSendBlockReason(
+  profile: { phone?: string | null } | null | undefined,
+  linkedPhone: string | null | undefined,
+  listenerReady: boolean
+): string | null {
+  if (!isWhatsAppLinked(profile)) {
+    return WHATSAPP_LINK_REQUIRED_MESSAGE;
+  }
+
+  if (listenerReady) {
+    if (!linkedPhone) {
+      return "Could not verify the linked WhatsApp number. Refresh the listener status.";
+    }
+    if (profile?.phone && !phonesMatch(linkedPhone, profile.phone)) {
+      return `${WHATSAPP_WRONG_LINKED_MESSAGE} Device: ${formatPhoneDisplay(linkedPhone)} · Profile: ${formatPhoneDisplay(profile.phone)}`;
+    }
+  }
+
+  return null;
 }
 
 export function defaultLeadMessage(customerName: string, senderName?: string | null): string {
@@ -50,7 +76,8 @@ export function defaultOrderMessage(
 export async function sendMessageViaListener(
   phone: string,
   message: string,
-  senderName?: string | null
+  senderName?: string | null,
+  expectedSenderPhone?: string | null
 ): Promise<{ ok: boolean; error?: string }> {
   const { whatsAppListenerApi } = await import("@/lib/whatsapp-listener-config");
   const url = whatsAppListenerApi("/api/send");
@@ -60,7 +87,12 @@ export async function sendMessageViaListener(
     const res = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ phone, message, senderName: senderName ?? undefined }),
+      body: JSON.stringify({
+        phone,
+        message,
+        senderName: senderName ?? undefined,
+        expectedSenderPhone: expectedSenderPhone ?? undefined,
+      }),
     });
     const data = await res.json();
     if (!res.ok) return { ok: false, error: data.error || "Send failed" };

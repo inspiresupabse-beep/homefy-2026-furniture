@@ -231,7 +231,8 @@ export default function DailyReportStaffClient() {
     const result = await sendMessageViaListener(
       DAILY_REPORT_BOSS_PHONE,
       whatsappMessage,
-      profile?.full_name
+      profile?.full_name,
+      profile?.phone
     );
     setSending(false);
 

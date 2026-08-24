@@ -5,6 +5,7 @@ import { io, type Socket } from "socket.io-client";
 import { WhatsAppIcon } from "@/components/icons/whatsapp-icon";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { formatPhoneDisplay } from "@/lib/phone";
 import {
   getWhatsAppListenerUrl,
   whatsAppListenerApi,
@@ -47,9 +48,10 @@ const STATUS_LABELS: Record<string, string> = {
 
 type Props = {
   onStatusChange?: (status: ListenerStatus) => void;
+  onListenerChange?: (info: { status: ListenerStatus; linkedPhone: string | null }) => void;
 };
 
-export function WhatsAppListenerPanel({ onStatusChange }: Props) {
+export function WhatsAppListenerPanel({ onStatusChange, onListenerChange }: Props) {
   const listenerUrl = getWhatsAppListenerUrl();
   const [status, setStatus] = useState<ListenerStatus>(
     listenerUrl ? "connecting" : "unconfigured"
@@ -59,18 +61,25 @@ export function WhatsAppListenerPanel({ onStatusChange }: Props) {
   const [extracted, setExtracted] = useState<ExtractedMessage[]>([]);
   const [activity, setActivity] = useState<string[]>([]);
   const [socket, setSocket] = useState<Socket | null>(null);
+  const [linkedPhone, setLinkedPhone] = useState<string | null>(null);
 
   const pushActivity = useCallback((line: string) => {
     setActivity((prev) => [`${new Date().toLocaleTimeString()} — ${line}`, ...prev].slice(0, 30));
   }, []);
 
-  const updateStatus = useCallback(
-    (next: ListenerStatus) => {
-      setStatus(next);
-      onStatusChange?.(next);
-    },
-    [onStatusChange]
-  );
+  const updateStatus = useCallback((next: ListenerStatus, nextLinkedPhone?: string | null) => {
+    setStatus(next);
+    if (nextLinkedPhone !== undefined) {
+      setLinkedPhone(nextLinkedPhone);
+    } else if (next !== "ready") {
+      setLinkedPhone(null);
+    }
+  }, []);
+
+  useEffect(() => {
+    onStatusChange?.(status);
+    onListenerChange?.({ status, linkedPhone });
+  }, [status, linkedPhone, onListenerChange, onStatusChange]);
 
   useEffect(() => {
     if (!listenerUrl) {
@@ -99,8 +108,8 @@ export function WhatsAppListenerPanel({ onStatusChange }: Props) {
       updateStatus("offline");
     });
 
-    s.on("status", ({ status: st }: { status: string }) => {
-      updateStatus(st as ListenerStatus);
+    s.on("status", ({ status: st, linkedPhone: lp }: { status: string; linkedPhone?: string | null }) => {
+      updateStatus(st as ListenerStatus, lp ?? (st === "ready" ? undefined : null));
       if (st !== "waiting_for_qr") setQrDataUrl(null);
     });
 
@@ -110,11 +119,13 @@ export function WhatsAppListenerPanel({ onStatusChange }: Props) {
       pushActivity("QR code ready — scan with your phone");
     });
 
-    s.on("ready", ({ groupName: gn }: { groupName?: string }) => {
-      updateStatus("ready");
+    s.on("ready", ({ groupName: gn, linkedPhone: lp }: { groupName?: string; linkedPhone?: string | null }) => {
+      updateStatus("ready", lp ?? null);
       setGroupName(gn ?? null);
       setQrDataUrl(null);
-      pushActivity("WhatsApp is ready");
+      pushActivity(
+        lp ? `WhatsApp is ready (${formatPhoneDisplay(lp)})` : "WhatsApp is ready"
+      );
     });
 
     s.on("extracted-log", (messages: ExtractedMessage[]) => {
@@ -149,9 +160,11 @@ export function WhatsAppListenerPanel({ onStatusChange }: Props) {
     fetch(whatsAppListenerApi("/api/status"))
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
-        if (data?.status) updateStatus(data.status as ListenerStatus);
+        if (data?.status) {
+          updateStatus(data.status as ListenerStatus, data.linkedPhone ?? null);
+        }
       })
-      .catch(() => updateStatus("offline"));
+      .catch(() => updateStatus("offline", null));
 
     return () => {
       s.disconnect();
@@ -199,6 +212,11 @@ export function WhatsAppListenerPanel({ onStatusChange }: Props) {
         {isReady && groupName && (
           <p className="mt-2 text-xs text-stone-500">Monitoring: {groupName}</p>
         )}
+        {isReady && linkedPhone && (
+          <p className="mt-1 text-xs font-medium text-emerald-700">
+            Logged in as {formatPhoneDisplay(linkedPhone)}
+          </p>
+        )}
       </CardHeader>
 
       <CardContent className="space-y-4 pt-0">
@@ -226,7 +244,10 @@ export function WhatsAppListenerPanel({ onStatusChange }: Props) {
         {showQr && (
           <div className="flex flex-col items-center gap-3 rounded-xl border border-stone-200 bg-white p-6">
             <p className="text-center text-sm font-medium text-stone-700">
-              Open WhatsApp on your phone → <strong>Linked devices</strong> → Scan QR
+              Open WhatsApp on <strong>your phone</strong> → <strong>Linked devices</strong> → Scan QR
+            </p>
+            <p className="text-center text-xs text-stone-500">
+              Use the same WhatsApp number saved in your profile above.
             </p>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
@@ -302,7 +323,8 @@ export async function sendViaListener(
   phone: string,
   customerName: string,
   reminder: string,
-  senderName?: string | null
+  senderName?: string | null,
+  expectedSenderPhone?: string | null
 ): Promise<{ ok: boolean; error?: string }> {
   const url = whatsAppListenerApi("/api/send-lead-reminder");
   if (!url) return { ok: false, error: "Listener URL not configured" };
@@ -311,7 +333,13 @@ export async function sendViaListener(
     const res = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ phone, customerName, reminder, senderName: senderName ?? undefined }),
+      body: JSON.stringify({
+        phone,
+        customerName,
+        reminder,
+        senderName: senderName ?? undefined,
+        expectedSenderPhone: expectedSenderPhone ?? undefined,
+      }),
     });
     const data = await res.json();
     if (!res.ok) return { ok: false, error: data.error || "Send failed" };

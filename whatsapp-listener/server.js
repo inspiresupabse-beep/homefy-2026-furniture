@@ -10,6 +10,7 @@ const {
   sendMessageToPhone,
   sendLeadReminder,
   getConnectionStatus,
+  getLinkedPhone,
   getExtractedLog,
   getDataFilePath,
 } = require("./whatsappService");
@@ -34,7 +35,7 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
 
 app.get("/api/status", (_req, res) => {
-  res.json({ status: getConnectionStatus() });
+  res.json({ status: getConnectionStatus(), linkedPhone: getLinkedPhone() });
 });
 
 app.get("/api/messages", (_req, res) => {
@@ -55,11 +56,11 @@ app.get("/api/download", (_req, res) => {
 
 app.post("/api/send", async (req, res) => {
   try {
-    const { phone, message } = req.body;
+    const { phone, message, expectedSenderPhone } = req.body;
     if (!phone || !message) {
       return res.status(400).json({ error: "phone and message are required" });
     }
-    const sent = await sendMessageToPhone(phone, message);
+    const sent = await sendMessageToPhone(phone, message, expectedSenderPhone);
     io.emit("message-sent", sent);
     res.json({ ok: true, sent });
   } catch (err) {
@@ -69,13 +70,19 @@ app.post("/api/send", async (req, res) => {
 
 app.post("/api/send-lead-reminder", async (req, res) => {
   try {
-    const { phone, customerName, reminder, senderName } = req.body;
+    const { phone, customerName, reminder, senderName, expectedSenderPhone } = req.body;
     if (!phone || !customerName || !reminder) {
       return res.status(400).json({
         error: "phone, customerName, and reminder are required",
       });
     }
-    const sent = await sendLeadReminder(phone, customerName, reminder, senderName);
+    const sent = await sendLeadReminder(
+      phone,
+      customerName,
+      reminder,
+      senderName,
+      expectedSenderPhone
+    );
     io.emit("message-sent", sent);
     res.json({ ok: true, sent });
   } catch (err) {
@@ -84,11 +91,11 @@ app.post("/api/send-lead-reminder", async (req, res) => {
 });
 
 io.on("connection", (socket) => {
-  socket.emit("status", { status: getConnectionStatus() });
+  socket.emit("status", { status: getConnectionStatus(), linkedPhone: getLinkedPhone() });
   socket.emit("extracted-log", getExtractedLog());
 
   socket.on("request-status", () => {
-    socket.emit("status", { status: getConnectionStatus() });
+    socket.emit("status", { status: getConnectionStatus(), linkedPhone: getLinkedPhone() });
   });
 });
 

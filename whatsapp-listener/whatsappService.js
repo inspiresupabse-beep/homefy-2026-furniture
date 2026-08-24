@@ -22,7 +22,29 @@ let io = null;
 let client = null;
 
 let connectionStatus = "initializing";
+/** @type {string | null} Last 10 digits of the WhatsApp account connected via QR */
+let linkedPhone = null;
 const extractedLog = [];
+
+function phoneDigitsMatch(a, b) {
+  const da = String(a || "").replace(/\D/g, "").slice(-10);
+  const db = String(b || "").replace(/\D/g, "").slice(-10);
+  return da.length === 10 && db.length === 10 && da === db;
+}
+
+function setStatus(status) {
+  connectionStatus = status;
+  if (status !== "ready") {
+    linkedPhone = null;
+  }
+  io?.emit("status", { status, linkedPhone });
+}
+
+function captureLinkedPhone() {
+  const wid = client?.info?.wid?.user;
+  linkedPhone = wid ? String(wid) : null;
+  return linkedPhone;
+}
 
 function ensureDataFile() {
   const dir = path.dirname(DATA_FILE);
@@ -32,11 +54,6 @@ function ensureDataFile() {
   if (!fs.existsSync(DATA_FILE)) {
     fs.writeFileSync(DATA_FILE, "# Homefy WhatsApp extracted messages\n", "utf8");
   }
-}
-
-function setStatus(status) {
-  connectionStatus = status;
-  io?.emit("status", { status });
 }
 
 function appendToFile(line) {
@@ -109,11 +126,16 @@ function initWhatsAppService(socketIo) {
   });
 
   client.on("ready", () => {
+    captureLinkedPhone();
     setStatus("ready");
-    io?.emit("ready", { groupName: GROUP_NAME || "(all chats)" });
+    io?.emit("ready", {
+      groupName: GROUP_NAME || "(all chats)",
+      linkedPhone,
+    });
   });
 
   client.on("disconnected", (reason) => {
+    linkedPhone = null;
     setStatus("disconnected");
     io?.emit("error", { message: `WhatsApp disconnected: ${reason}` });
   });
@@ -182,8 +204,23 @@ function initWhatsAppService(socketIo) {
   });
 }
 
-async function sendMessageToPhone(phone, text) {
+function assertSenderPhone(expectedSenderPhone) {
+  if (!linkedPhone) {
+    throw new Error("WhatsApp is not connected on this device. Scan the QR code first.");
+  }
+  if (!expectedSenderPhone) {
+    throw new Error("Please save your WhatsApp number in your profile first.");
+  }
+  if (!phoneDigitsMatch(linkedPhone, expectedSenderPhone)) {
+    throw new Error(
+      "Wrong WhatsApp linked. This device is logged in with a different number. Scan the QR with your own WhatsApp or update your profile number."
+    );
+  }
+}
+
+async function sendMessageToPhone(phone, text, expectedSenderPhone) {
   if (!client) throw new Error("WhatsApp client not initialized");
+  assertSenderPhone(expectedSenderPhone);
   const state = await client.getState();
   if (state !== "CONNECTED") throw new Error(`WhatsApp not connected (state: ${state})`);
 
@@ -197,14 +234,18 @@ async function sendMessageToPhone(phone, text) {
   };
 }
 
-async function sendLeadReminder(phone, customerName, reminderText, senderName) {
+async function sendLeadReminder(phone, customerName, reminderText, senderName, expectedSenderPhone) {
   const from = senderName?.trim() ? `${senderName.trim()} from Homefy` : "Homefy";
   const message = `Hi ${customerName},\n\nThis is ${from} with an update on your inquiry:\n\n${reminderText}\n\nPlease reply if you have any questions.`;
-  return sendMessageToPhone(phone, message);
+  return sendMessageToPhone(phone, message, expectedSenderPhone);
 }
 
 function getConnectionStatus() {
   return connectionStatus;
+}
+
+function getLinkedPhone() {
+  return linkedPhone;
 }
 
 function getExtractedLog() {
@@ -221,6 +262,7 @@ module.exports = {
   sendMessageToPhone,
   sendLeadReminder,
   getConnectionStatus,
+  getLinkedPhone,
   getExtractedLog,
   getDataFilePath,
 };
