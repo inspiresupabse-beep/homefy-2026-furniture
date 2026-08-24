@@ -3,7 +3,7 @@
 import { useRef } from "react";
 import { useDroppable } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
-import { ChevronDown } from "lucide-react";
+import { ChevronUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SortableLeadCard } from "@/components/leads/sortable-lead-card";
 import type { Lead, LeadStatus, Profile } from "@/lib/types/database";
@@ -21,10 +21,10 @@ export function KanbanColumn({ status, leads, agents, orderByLeadId, onAssign, o
   const { setNodeRef, isOver } = useDroppable({ id: status.value });
   const listRef = useRef<HTMLDivElement>(null);
 
-  function scrollToLatest() {
+  function scrollToNewest() {
     const list = listRef.current;
     if (!list) return;
-    list.scrollTo({ top: list.scrollHeight, behavior: "smooth" });
+    list.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   return (
@@ -43,12 +43,12 @@ export function KanbanColumn({ status, leads, agents, orderByLeadId, onAssign, o
           {leads.length > 5 && (
             <button
               type="button"
-              onClick={scrollToLatest}
+              onClick={scrollToNewest}
               className="inline-flex items-center gap-0.5 rounded-md bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-800 hover:bg-amber-200 sm:text-xs"
-              title="Jump to latest leads"
+              title="Jump to newest leads"
             >
-              Latest
-              <ChevronDown className="h-3 w-3" />
+              Newest
+              <ChevronUp className="h-3 w-3" />
             </button>
           )}
           <span className="text-xs font-medium text-stone-400">{leads.length}</span>

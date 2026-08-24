@@ -211,6 +211,9 @@ export default function LeadsPageClient({ isAdmin }: { isAdmin: boolean }) {
     return filteredLeads
       .filter((l) => l.status === status)
       .sort((a, b) => {
+        const createdDiff =
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+        if (createdDiff !== 0) return createdDiff;
         const ta = tempOrder[a.temperature ?? "warm"] ?? 1;
         const tb = tempOrder[b.temperature ?? "warm"] ?? 1;
         if (ta !== tb) return ta - tb;
