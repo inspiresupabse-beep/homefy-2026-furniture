@@ -16,10 +16,18 @@ const {
 } = require("./whatsappService");
 
 const PORT = Number(process.env.PORT) || 4000;
-const CORS_ORIGINS = (process.env.CORS_ORIGINS || "http://localhost:3000,https://crm.teamhomefy.in")
+const DEFAULT_CORS_ORIGINS =
+  "http://localhost:3000,https://crm.teamhomefy.in,https://furniture.teamhomefy.in,https://homefy-2026-furniture.vercel.app,https://homefy-2026-furniture-seven.vercel.app";
+const CORS_ORIGINS = (process.env.CORS_ORIGINS || DEFAULT_CORS_ORIGINS)
   .split(",")
   .map((s) => s.trim())
   .filter(Boolean);
+
+function isAllowedOrigin(origin) {
+  if (!origin) return true;
+  if (!CORS_ORIGINS.length) return true;
+  return CORS_ORIGINS.includes(origin);
+}
 
 const app = express();
 const server = http.createServer(app);
@@ -29,6 +37,21 @@ const io = new Server(server, {
     origin: CORS_ORIGINS.length ? CORS_ORIGINS : true,
     methods: ["GET", "POST"],
   },
+});
+
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  if (isAllowedOrigin(origin)) {
+    if (origin) res.setHeader("Access-Control-Allow-Origin", origin);
+    res.setHeader("Vary", "Origin");
+  }
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  if (req.method === "OPTIONS") {
+    res.sendStatus(204);
+    return;
+  }
+  next();
 });
 
 app.use(express.json());

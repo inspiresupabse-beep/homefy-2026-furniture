@@ -8,6 +8,23 @@ export function getWhatsAppListenerUrl(): string {
   return "";
 }
 
+/** HTTPS CRM pages cannot call http://localhost (browser mixed-content block). */
+export function isListenerUrlBlockedInBrowser(listenerUrl: string): boolean {
+  if (!listenerUrl || typeof window === "undefined") return false;
+  if (window.location.protocol !== "https:") return false;
+  return listenerUrl.startsWith("http://");
+}
+
+export function getListenerConnectionIssue(listenerUrl: string): string | null {
+  if (!listenerUrl) {
+    return "WhatsApp listener URL is not configured for this site.";
+  }
+  if (isListenerUrlBlockedInBrowser(listenerUrl)) {
+    return "This live site uses HTTPS and cannot reach http://localhost from your browser. Open the CRM at http://localhost:3000 on this PC, or set an HTTPS listener URL (for example https://wa.teamhomefy.in) in Vercel.";
+  }
+  return null;
+}
+
 export function whatsAppListenerApi(path: string): string {
   const base = getWhatsAppListenerUrl();
   if (!base) return "";

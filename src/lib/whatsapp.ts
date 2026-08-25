@@ -1,4 +1,5 @@
 import { formatPhoneDisplay, phonesMatch } from "@/lib/phone";
+import { getListenerConnectionIssue, getWhatsAppListenerUrl } from "@/lib/whatsapp-listener-config";
 
 /** Normalize Indian phone numbers for wa.me links */
 export function normalizeWhatsAppPhone(phone: string): string {
@@ -40,6 +41,11 @@ export function getWhatsAppSendBlockReason(
   linkedPhone: string | null | undefined,
   listenerReady: boolean
 ): string | null {
+  if (typeof window !== "undefined") {
+    const connectionIssue = getListenerConnectionIssue(getWhatsAppListenerUrl());
+    if (connectionIssue) return connectionIssue;
+  }
+
   if (!isWhatsAppLinked(profile)) {
     return WHATSAPP_LINK_REQUIRED_MESSAGE;
   }
@@ -66,7 +72,15 @@ export async function verifyWhatsAppBeforeSend(
     return WHATSAPP_LINK_REQUIRED_MESSAGE;
   }
 
-  const { whatsAppListenerApi } = await import("@/lib/whatsapp-listener-config");
+  const { getListenerConnectionIssue, getWhatsAppListenerUrl, whatsAppListenerApi } = await import(
+    "@/lib/whatsapp-listener-config"
+  );
+  const listenerUrl = getWhatsAppListenerUrl();
+  const connectionIssue = getListenerConnectionIssue(listenerUrl);
+  if (connectionIssue) {
+    return connectionIssue;
+  }
+
   const url = whatsAppListenerApi("/api/status");
   if (!url) {
     return WHATSAPP_LISTENER_REQUIRED_MESSAGE;

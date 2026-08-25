@@ -56,6 +56,36 @@ function ensureDataFile() {
   }
 }
 
+function cleanupStaleAuthLocks() {
+  const authRoot = path.join(__dirname, ".wwebjs_auth");
+  if (!fs.existsSync(authRoot)) return;
+
+  const removeJournalFiles = (dir) => {
+    let entries = [];
+    try {
+      entries = fs.readdirSync(dir, { withFileTypes: true });
+    } catch {
+      return;
+    }
+    for (const entry of entries) {
+      const fullPath = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        removeJournalFiles(fullPath);
+        continue;
+      }
+      if (entry.name.endsWith("-journal")) {
+        try {
+          fs.unlinkSync(fullPath);
+        } catch {
+          /* locked by another process — listener may already be running */
+        }
+      }
+    }
+  };
+
+  removeJournalFiles(authRoot);
+}
+
 function appendToFile(line) {
   ensureDataFile();
   fs.appendFileSync(DATA_FILE, line + "\n", "utf8");
@@ -84,6 +114,7 @@ function normalizePhone(input) {
 function initWhatsAppService(socketIo) {
   io = socketIo;
   ensureDataFile();
+  cleanupStaleAuthLocks();
 
   client = new Client({
     authStrategy: new LocalAuth({ dataPath: path.join(__dirname, ".wwebjs_auth") }),
@@ -200,7 +231,11 @@ function initWhatsAppService(socketIo) {
   setStatus("connecting");
   client.initialize().catch((err) => {
     setStatus("error");
-    io?.emit("error", { message: err.message || "Failed to initialize WhatsApp client" });
+    const message =
+      err?.message?.includes("EBUSY") || err?.message?.includes("locked")
+        ? "WhatsApp session files are locked. Stop other listener processes, then run npm run whatsapp:listener again."
+        : err.message || "Failed to initialize WhatsApp client";
+    io?.emit("error", { message });
   });
 }
 

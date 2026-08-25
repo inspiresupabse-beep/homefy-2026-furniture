@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { formatPhoneDisplay } from "@/lib/phone";
 import {
+  getListenerConnectionIssue,
   getWhatsAppListenerUrl,
   whatsAppListenerApi,
 } from "@/lib/whatsapp-listener-config";
@@ -14,6 +15,7 @@ import { Download, RefreshCw, Wifi, WifiOff } from "lucide-react";
 
 export type ListenerStatus =
   | "unconfigured"
+  | "blocked"
   | "connecting"
   | "initializing"
   | "waiting_for_qr"
@@ -35,6 +37,7 @@ export type ExtractedMessage = {
 
 const STATUS_LABELS: Record<string, string> = {
   unconfigured: "Service not configured",
+  blocked: "Cannot connect from live site",
   connecting: "Connecting…",
   initializing: "Starting…",
   waiting_for_qr: "Scan QR to link",
@@ -53,9 +56,12 @@ type Props = {
 
 export function WhatsAppListenerPanel({ onStatusChange, onListenerChange }: Props) {
   const listenerUrl = getWhatsAppListenerUrl();
-  const [status, setStatus] = useState<ListenerStatus>(
-    listenerUrl ? "connecting" : "unconfigured"
-  );
+  const connectionIssue = getListenerConnectionIssue(listenerUrl);
+  const [status, setStatus] = useState<ListenerStatus>(() => {
+    if (!listenerUrl) return "unconfigured";
+    if (connectionIssue) return "blocked";
+    return "connecting";
+  });
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
   const [groupName, setGroupName] = useState<string | null>(null);
   const [extracted, setExtracted] = useState<ExtractedMessage[]>([]);
@@ -84,6 +90,10 @@ export function WhatsAppListenerPanel({ onStatusChange, onListenerChange }: Prop
   useEffect(() => {
     if (!listenerUrl) {
       updateStatus("unconfigured");
+      return;
+    }
+    if (connectionIssue) {
+      updateStatus("blocked");
       return;
     }
 
@@ -169,7 +179,7 @@ export function WhatsAppListenerPanel({ onStatusChange, onListenerChange }: Prop
     return () => {
       s.disconnect();
     };
-  }, [listenerUrl, pushActivity, updateStatus]);
+  }, [listenerUrl, connectionIssue, pushActivity, updateStatus]);
 
   const isReady = status === "ready";
   const showQr = status === "waiting_for_qr" && qrDataUrl;
@@ -220,6 +230,17 @@ export function WhatsAppListenerPanel({ onStatusChange, onListenerChange }: Prop
       </CardHeader>
 
       <CardContent className="space-y-4 pt-0">
+        {status === "blocked" && connectionIssue && (
+          <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+            <p className="font-medium">WhatsApp listener cannot be reached from this page</p>
+            <p className="mt-1 text-amber-800">{connectionIssue}</p>
+            <p className="mt-2 text-xs text-amber-700">
+              On this PC, run <code className="rounded bg-white px-1">npm run whatsapp:listener</code>{" "}
+              and open <code className="rounded bg-white px-1">http://localhost:3000/whatsapp</code>.
+            </p>
+          </div>
+        )}
+
         {status === "unconfigured" && (
           <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
             <p className="font-medium">WhatsApp listener not running</p>
@@ -234,10 +255,17 @@ export function WhatsAppListenerPanel({ onStatusChange, onListenerChange }: Prop
           </div>
         )}
 
-        {status === "offline" && listenerUrl && (
+        {status === "offline" && listenerUrl && !connectionIssue && (
           <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800">
-            Cannot reach listener at <strong>{listenerUrl}</strong>. Run{" "}
-            <code className="rounded bg-white px-1">npm run whatsapp:listener</code>.
+            <p className="font-medium">Listener offline</p>
+            <p className="mt-1">
+              Cannot reach listener at <strong>{listenerUrl}</strong>. On this PC, run{" "}
+              <code className="rounded bg-white px-1">npm run whatsapp:listener</code> and keep the
+              terminal open.
+            </p>
+            <p className="mt-2 text-xs text-red-700">
+              If it crashes with &quot;EBUSY&quot;, close other listener windows and try again.
+            </p>
           </div>
         )}
 
