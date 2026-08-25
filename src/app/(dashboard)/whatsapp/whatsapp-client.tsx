@@ -6,24 +6,17 @@ import { createClient } from "@/lib/supabase/client";
 import { PageHeader } from "@/components/layout/page-header";
 import { DashboardPageSkeleton } from "@/components/layout/dashboard-page-skeleton";
 import { WhatsAppIcon } from "@/components/icons/whatsapp-icon";
-import {
-  WhatsAppListenerPanel,
-  sendViaListener,
-  type ListenerStatus,
-} from "@/components/whatsapp/whatsapp-listener-panel";
 import { UserWhatsAppLink } from "@/components/whatsapp/user-whatsapp-link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import {
-  buildWhatsAppUrl,
   defaultFollowUpMessage,
   defaultLeadMessage,
   defaultOrderMessage,
-  getWhatsAppSendBlockReason,
-  verifyWhatsAppBeforeSend,
+  openWhatsAppChat,
 } from "@/lib/whatsapp";
 import { getLeadStatusLabel, type Lead, type LeadReminder, type Order, type Profile } from "@/lib/types/database";
-import { ExternalLink, Flame, Bell, Package, Send } from "lucide-react";
+import { ExternalLink, Flame, Bell, Package } from "lucide-react";
 
 type DeliveryReminderRow = {
   id: string;
@@ -40,115 +33,29 @@ function WhatsAppLinkButton({
   message,
   label = "WhatsApp",
   compact,
-  profile,
-  onBlocked,
 }: {
   phone: string;
   message?: string;
   label?: string;
   compact?: boolean;
-  profile: Profile | null;
-  onBlocked: (message: string) => void;
 }) {
-  const [checking, setChecking] = useState(false);
-
-  async function handleClick() {
-    setChecking(true);
-    const blockReason = await verifyWhatsAppBeforeSend(profile);
-    setChecking(false);
-    if (blockReason) {
-      onBlocked(blockReason);
-      return;
-    }
-    window.open(buildWhatsAppUrl(phone, message), "_blank", "noopener,noreferrer");
-  }
-
   return (
     <Button
       type="button"
       size={compact ? "sm" : "md"}
       className="gap-2 bg-[#25D366] text-white hover:bg-[#1da851]"
-      disabled={checking}
-      onClick={() => void handleClick()}
+      onClick={() => openWhatsAppChat(phone, message)}
     >
       <WhatsAppIcon className={compact ? "h-3.5 w-3.5" : "h-4 w-4"} />
-      {checking ? "Checking…" : label}
+      {label}
       <ExternalLink className="h-3 w-3 opacity-70" />
     </Button>
-  );
-}
-
-function LinkedSendButton({
-  phone,
-  customerName,
-  message,
-  senderName,
-  expectedSenderPhone,
-  profile,
-  onBlocked,
-  compact,
-}: {
-  phone: string;
-  customerName: string;
-  message: string;
-  senderName?: string | null;
-  expectedSenderPhone?: string | null;
-  profile: Profile | null;
-  onBlocked: (message: string) => void;
-  compact?: boolean;
-}) {
-  const [sending, setSending] = useState(false);
-  const [feedback, setFeedback] = useState<string | null>(null);
-
-  async function handleSend() {
-    setSending(true);
-    setFeedback(null);
-    const blockReason = await verifyWhatsAppBeforeSend(profile);
-    if (blockReason) {
-      setSending(false);
-      onBlocked(blockReason);
-      return;
-    }
-
-    const result = await sendViaListener(
-      phone,
-      customerName,
-      message,
-      senderName,
-      expectedSenderPhone
-    );
-    setSending(false);
-    setFeedback(result.ok ? "Sent!" : result.error ?? "Failed");
-    if (result.ok) setTimeout(() => setFeedback(null), 3000);
-  }
-
-  return (
-    <div className="inline-flex flex-col items-end gap-1">
-      <Button
-        type="button"
-        size={compact ? "sm" : "md"}
-        variant="secondary"
-        className="gap-2 border-emerald-200 bg-emerald-50 text-emerald-900 hover:bg-emerald-100"
-        disabled={sending}
-        onClick={handleSend}
-      >
-        <Send className="h-3.5 w-3.5" />
-        {sending ? "Sending…" : "Send via linked WhatsApp"}
-      </Button>
-      {feedback && (
-        <span className={`text-xs ${feedback === "Sent!" ? "text-emerald-600" : "text-red-600"}`}>
-          {feedback}
-        </span>
-      )}
-    </div>
   );
 }
 
 export default function WhatsAppPageClient() {
   const supabaseRef = useRef(createClient());
   const [loading, setLoading] = useState(true);
-  const [listenerStatus, setListenerStatus] = useState<ListenerStatus>("connecting");
-  const [linkedPhone, setLinkedPhone] = useState<string | null>(null);
   const [dueReminders, setDueReminders] = useState<LeadReminder[]>([]);
   const [hotLeads, setHotLeads] = useState<Lead[]>([]);
   const [recentOrders, setRecentOrders] = useState<Order[]>([]);
@@ -156,14 +63,7 @@ export default function WhatsAppPageClient() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [profile, setProfile] = useState<Profile | null>(null);
 
-  const listenerReady = listenerStatus === "ready";
   const senderName = profile?.full_name ?? null;
-  const sendBlockReason = getWhatsAppSendBlockReason(profile, linkedPhone, listenerReady);
-  const [linkNotice, setLinkNotice] = useState<string | null>(null);
-
-  function showSendBlockedNotice(message: string) {
-    setLinkNotice(message);
-  }
 
   const fetchData = useCallback(async () => {
     const supabase = supabaseRef.current;
@@ -244,7 +144,7 @@ export default function WhatsAppPageClient() {
     <div className="space-y-6 sm:space-y-8">
       <PageHeader
         title="WhatsApp"
-        description="Link your WhatsApp number and message customers with your name"
+        description="Open WhatsApp on this device to message customers — uses whatever WhatsApp is logged in here"
       />
 
       {profile && (
@@ -252,60 +152,17 @@ export default function WhatsAppPageClient() {
           profile={profile}
           onSaved={(next) => {
             setProfile(next);
-            setLinkNotice(null);
           }}
         />
       )}
 
-      {linkNotice && (
-        <div
-          className={`rounded-lg border px-4 py-3 text-sm ${
-            sendBlockReason && linkNotice.includes("Wrong WhatsApp")
-              ? "border-red-300 bg-red-50 text-red-950"
-              : "border-amber-300 bg-amber-50 text-amber-950"
-          }`}
-          role="alert"
-        >
-          <p className="font-medium">{linkNotice}</p>
-          {!sendBlockReason && (
-            <p className="mt-1 text-amber-800">
-              Save your WhatsApp number above{!listenerReady ? " and scan the QR below" : ""} before
-              messaging customers.
-            </p>
-          )}
-          {sendBlockReason && linkNotice.includes("Wrong WhatsApp") && (
-            <p className="mt-1 text-red-800">
-              Scan the QR below with your own WhatsApp, or update your profile number to match this
-              device.
-            </p>
-          )}
-          <button
-            type="button"
-            className="mt-2 text-xs font-medium text-amber-900 underline"
-            onClick={() => setLinkNotice(null)}
-          >
-            Dismiss
-          </button>
-        </div>
-      )}
-
-      <WhatsAppListenerPanel
-        onStatusChange={setListenerStatus}
-        onListenerChange={({ linkedPhone: lp }) => setLinkedPhone(lp)}
-      />
-
-      {sendBlockReason && (
-        <div
-          className="rounded-lg border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-950"
-          role="alert"
-        >
-          <p className="font-medium">{sendBlockReason}</p>
-          <p className="mt-1 text-red-800">
-            WhatsApp will not open until your profile number matches the WhatsApp logged in on this
-            device.
-          </p>
-        </div>
-      )}
+      <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
+        <p className="font-medium">How it works</p>
+        <p className="mt-1 text-emerald-800">
+          Tap <strong>WhatsApp</strong> on any contact. It opens WhatsApp on this PC or phone (app or
+          WhatsApp Web) with the message ready — tap Send from your logged-in account.
+        </p>
+      </div>
 
       {dueReminders.length > 0 && (
         <Card>
@@ -331,25 +188,7 @@ export default function WhatsAppPageClient() {
                     <p className="text-sm text-stone-500">{reminder.title}</p>
                     <p className="text-xs text-stone-400">{lead.phone}</p>
                   </div>
-                  <div className="flex flex-wrap gap-2">
-                    <LinkedSendButton
-                      phone={lead.phone}
-                      customerName={lead.customer_name}
-                      message={reminder.title}
-                      senderName={senderName}
-                      expectedSenderPhone={profile?.phone}
-                      profile={profile}
-                      onBlocked={showSendBlockedNotice}
-                      compact
-                    />
-                    <WhatsAppLinkButton
-                      phone={lead.phone}
-                      message={msg}
-                      compact
-                      profile={profile}
-                      onBlocked={showSendBlockedNotice}
-                    />
-                  </div>
+                  <WhatsAppLinkButton phone={lead.phone} message={msg} compact />
                 </div>
               );
             })}
@@ -383,22 +222,10 @@ export default function WhatsAppPageClient() {
                   <p className="text-xs text-stone-400">{lead.phone}</p>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  <LinkedSendButton
-                    phone={lead.phone}
-                    customerName={lead.customer_name}
-                    message="Following up on your furniture inquiry"
-                    senderName={senderName}
-                    expectedSenderPhone={profile?.phone}
-                    profile={profile}
-                    onBlocked={showSendBlockedNotice}
-                    compact
-                  />
                   <WhatsAppLinkButton
                     phone={lead.phone}
                     message={defaultLeadMessage(lead.customer_name, senderName)}
                     compact
-                    profile={profile}
-                    onBlocked={showSendBlockedNotice}
                   />
                   <Link href={`/leads?open=${lead.id}`}>
                     <Button variant="secondary" size="sm">
@@ -435,25 +262,11 @@ export default function WhatsAppPageClient() {
                   <p className="text-sm capitalize text-stone-500">{order.status.replace("_", " ")}</p>
                   <p className="text-xs text-stone-400">{order.phone}</p>
                 </div>
-                <div className="flex flex-wrap gap-2">
-                  <LinkedSendButton
-                    phone={order.phone}
-                    customerName={order.customer_name}
-                    message={`Update on your order ${order.order_number}`}
-                    senderName={senderName}
-                    expectedSenderPhone={profile?.phone}
-                    profile={profile}
-                    onBlocked={showSendBlockedNotice}
-                    compact
-                  />
-                  <WhatsAppLinkButton
-                    phone={order.phone}
-                    message={defaultOrderMessage(order.customer_name, order.order_number, senderName)}
-                    compact
-                    profile={profile}
-                    onBlocked={showSendBlockedNotice}
-                  />
-                </div>
+                <WhatsAppLinkButton
+                  phone={order.phone}
+                  message={defaultOrderMessage(order.customer_name, order.order_number, senderName)}
+                  compact
+                />
               </div>
             ))}
           </CardContent>
@@ -484,25 +297,7 @@ export default function WhatsAppPageClient() {
                     </p>
                     <p className="mt-2 text-sm text-stone-600">{reminder.message}</p>
                   </div>
-                  <div className="flex flex-wrap gap-2">
-                    <LinkedSendButton
-                      phone={reminder.phone}
-                      customerName={reminder.order?.customer_name ?? "Customer"}
-                      message={reminder.message}
-                      senderName={senderName}
-                      expectedSenderPhone={profile?.phone}
-                      profile={profile}
-                      onBlocked={showSendBlockedNotice}
-                      compact
-                    />
-                    <WhatsAppLinkButton
-                      phone={reminder.phone}
-                      message={reminder.message}
-                      compact
-                      profile={profile}
-                      onBlocked={showSendBlockedNotice}
-                    />
-                  </div>
+                  <WhatsAppLinkButton phone={reminder.phone} message={reminder.message} compact />
                 </div>
               </div>
             ))}
@@ -518,7 +313,7 @@ export default function WhatsAppPageClient() {
             <CardContent className="py-12 text-center text-stone-500">
               <WhatsAppIcon className="mx-auto mb-3 h-10 w-10 text-[#25D366]" />
               <p className="font-medium text-stone-700">No contacts ready right now</p>
-              <p className="mt-1 text-sm">Link WhatsApp above or add leads to start messaging.</p>
+              <p className="mt-1 text-sm">Add leads to start messaging customers on WhatsApp.</p>
               <Link href="/leads" className="mt-4 inline-block">
                 <Button variant="secondary">Go to Leads</Button>
               </Link>

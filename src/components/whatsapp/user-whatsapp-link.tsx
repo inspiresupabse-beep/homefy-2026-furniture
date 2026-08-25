@@ -114,8 +114,8 @@ export function UserWhatsAppLink({
           </Button>
 
           <p className="text-xs leading-relaxed text-stone-500">
-            When you tap WhatsApp on a lead or order, the message is prefilled with your name and
-            opens in WhatsApp on <strong>this number</strong> — you tap Send from your phone.
+            Optional — used to personalize messages with your name. Tapping WhatsApp opens the app or
+            WhatsApp Web already logged in on this device.
           </p>
         </form>
       </CardContent>

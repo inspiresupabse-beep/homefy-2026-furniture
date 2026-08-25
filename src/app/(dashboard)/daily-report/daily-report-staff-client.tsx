@@ -18,7 +18,7 @@ import { formatDailyReportMessage } from "@/lib/daily-report/format-message";
 import { mapReportRow } from "@/lib/daily-report/map-report";
 import { EMPTY_DAILY_METRICS } from "@/lib/daily-report/types";
 import { canAccessLeads } from "@/lib/permissions";
-import { buildWhatsAppUrl, sendMessageViaListener, verifyWhatsAppBeforeSend } from "@/lib/whatsapp";
+import { openWhatsAppChat, sendMessageViaListener } from "@/lib/whatsapp";
 import { getWhatsAppListenerUrl } from "@/lib/whatsapp-listener-config";
 import { formatCurrency } from "@/lib/utils";
 import type { Lead, Order, Profile } from "@/lib/types/database";
@@ -58,11 +58,6 @@ export default function DailyReportStaffClient() {
       notes,
     });
   }, [profile, reportDate, metrics, notes]);
-
-  const bossWhatsAppUrl = useMemo(
-    () => buildWhatsAppUrl(DAILY_REPORT_BOSS_PHONE, whatsappMessage),
-    [whatsappMessage]
-  );
 
   const loadReport = useCallback(async () => {
     const supabase = supabaseRef.current;
@@ -228,18 +223,10 @@ export default function DailyReportStaffClient() {
       return;
     }
 
-    const blockReason = await verifyWhatsAppBeforeSend(profile);
-    if (blockReason) {
-      setSending(false);
-      setError(blockReason);
-      return;
-    }
-
     const result = await sendMessageViaListener(
       DAILY_REPORT_BOSS_PHONE,
       whatsappMessage,
-      profile?.full_name,
-      profile?.phone
+      profile?.full_name
     );
     setSending(false);
 
@@ -258,16 +245,10 @@ export default function DailyReportStaffClient() {
     const saved = await handleSave(false);
     if (!saved) return;
 
-    const blockReason = await verifyWhatsAppBeforeSend(profile);
-    if (blockReason) {
-      setError(blockReason);
-      return;
-    }
-
     await markDailyReportSent(reportDate);
     setSentAt(new Date().toISOString());
-    window.open(bossWhatsAppUrl, "_blank", "noopener,noreferrer");
-    setMessage("Opening WhatsApp — tap Send from your phone.");
+    openWhatsAppChat(DAILY_REPORT_BOSS_PHONE, whatsappMessage);
+    setMessage("Opening WhatsApp — tap Send from your logged-in account.");
     void loadReport();
   }
 
@@ -372,7 +353,7 @@ export default function DailyReportStaffClient() {
                     <ExternalLink className="h-3.5 w-3.5 opacity-80" />
                   </Button>
                   <p className="text-center text-xs text-stone-500">
-                    Opens WhatsApp on your phone — message sends from your number
+                    Opens WhatsApp on this device — sends from your logged-in account
                   </p>
 
                   {listenerReady && (

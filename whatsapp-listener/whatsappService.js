@@ -240,11 +240,9 @@ function initWhatsAppService(socketIo) {
 }
 
 function assertSenderPhone(expectedSenderPhone) {
+  if (!expectedSenderPhone) return;
   if (!linkedPhone) {
     throw new Error("WhatsApp is not connected on this device. Scan the QR code first.");
-  }
-  if (!expectedSenderPhone) {
-    throw new Error("Please save your WhatsApp number in your profile first.");
   }
   if (!phoneDigitsMatch(linkedPhone, expectedSenderPhone)) {
     throw new Error(
