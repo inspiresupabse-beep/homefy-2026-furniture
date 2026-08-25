@@ -18,7 +18,7 @@ import { formatDailyReportMessage } from "@/lib/daily-report/format-message";
 import { mapReportRow } from "@/lib/daily-report/map-report";
 import { EMPTY_DAILY_METRICS } from "@/lib/daily-report/types";
 import { canAccessLeads } from "@/lib/permissions";
-import { buildWhatsAppUrl, sendMessageViaListener } from "@/lib/whatsapp";
+import { buildWhatsAppUrl, sendMessageViaListener, verifyWhatsAppBeforeSend } from "@/lib/whatsapp";
 import { getWhatsAppListenerUrl } from "@/lib/whatsapp-listener-config";
 import { formatCurrency } from "@/lib/utils";
 import type { Lead, Order, Profile } from "@/lib/types/database";
@@ -228,6 +228,13 @@ export default function DailyReportStaffClient() {
       return;
     }
 
+    const blockReason = await verifyWhatsAppBeforeSend(profile);
+    if (blockReason) {
+      setSending(false);
+      setError(blockReason);
+      return;
+    }
+
     const result = await sendMessageViaListener(
       DAILY_REPORT_BOSS_PHONE,
       whatsappMessage,
@@ -250,6 +257,12 @@ export default function DailyReportStaffClient() {
   async function handleOpenWhatsApp() {
     const saved = await handleSave(false);
     if (!saved) return;
+
+    const blockReason = await verifyWhatsAppBeforeSend(profile);
+    if (blockReason) {
+      setError(blockReason);
+      return;
+    }
 
     await markDailyReportSent(reportDate);
     setSentAt(new Date().toISOString());

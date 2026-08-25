@@ -186,7 +186,7 @@ export function WhatsAppListenerPanel({ onStatusChange, onListenerChange }: Prop
             <div>
               <h2 className="font-semibold text-stone-900">Linked WhatsApp</h2>
               <p className="text-sm text-stone-500">
-                Scan QR with your phone to link WhatsApp for PC sending (optional)
+                Scan QR with your phone to link WhatsApp before sending messages
               </p>
             </div>
           </div>

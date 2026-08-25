@@ -23,6 +23,9 @@ export function whatsAppSenderLabel(senderName?: string | null): string {
 
 export const WHATSAPP_LINK_REQUIRED_MESSAGE = "Please link your WhatsApp first.";
 
+export const WHATSAPP_LISTENER_REQUIRED_MESSAGE =
+  "Connect your WhatsApp first. Scan the QR code on this page with your phone.";
+
 export const WHATSAPP_WRONG_LINKED_MESSAGE =
   "Wrong WhatsApp linked. The WhatsApp logged in on this device does not match your saved number.";
 
@@ -41,16 +44,45 @@ export function getWhatsAppSendBlockReason(
     return WHATSAPP_LINK_REQUIRED_MESSAGE;
   }
 
-  if (listenerReady) {
-    if (!linkedPhone) {
-      return "Could not verify the linked WhatsApp number. Refresh the listener status.";
-    }
-    if (profile?.phone && !phonesMatch(linkedPhone, profile.phone)) {
-      return `${WHATSAPP_WRONG_LINKED_MESSAGE} Device: ${formatPhoneDisplay(linkedPhone)} · Profile: ${formatPhoneDisplay(profile.phone)}`;
-    }
+  if (!listenerReady) {
+    return WHATSAPP_LISTENER_REQUIRED_MESSAGE;
+  }
+
+  if (!linkedPhone) {
+    return "Could not verify the linked WhatsApp number. Refresh the listener status.";
+  }
+
+  if (profile?.phone && !phonesMatch(linkedPhone, profile.phone)) {
+    return `${WHATSAPP_WRONG_LINKED_MESSAGE} Device: ${formatPhoneDisplay(linkedPhone)} · Profile: ${formatPhoneDisplay(profile.phone)}`;
   }
 
   return null;
+}
+
+export async function verifyWhatsAppBeforeSend(
+  profile: { phone?: string | null } | null | undefined
+): Promise<string | null> {
+  if (!isWhatsAppLinked(profile)) {
+    return WHATSAPP_LINK_REQUIRED_MESSAGE;
+  }
+
+  const { whatsAppListenerApi } = await import("@/lib/whatsapp-listener-config");
+  const url = whatsAppListenerApi("/api/status");
+  if (!url) {
+    return WHATSAPP_LISTENER_REQUIRED_MESSAGE;
+  }
+
+  try {
+    const res = await fetch(url, { cache: "no-store" });
+    if (!res.ok) {
+      return WHATSAPP_LISTENER_REQUIRED_MESSAGE;
+    }
+    const data = (await res.json()) as { status?: string; linkedPhone?: string | null };
+    const listenerReady = data.status === "ready";
+    return getWhatsAppSendBlockReason(profile, data.linkedPhone ?? null, listenerReady);
+  } catch {
+    return WHATSAPP_LISTENER_REQUIRED_MESSAGE;
+  }
 }
 
 export function defaultLeadMessage(customerName: string, senderName?: string | null): string {
