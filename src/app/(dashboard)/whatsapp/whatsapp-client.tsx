@@ -37,7 +37,6 @@ export default function WhatsAppPageClient() {
   const [deliveryReminders, setDeliveryReminders] = useState<DeliveryReminderRow[]>([]);
   const [isAdmin, setIsAdmin] = useState(false);
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [connectNotice, setConnectNotice] = useState<string | null>(null);
 
   const senderName = profile?.full_name ?? null;
 
@@ -120,32 +119,15 @@ export default function WhatsAppPageClient() {
     <div className="space-y-6 sm:space-y-8">
       <PageHeader
         title="WhatsApp"
-        description="Connect your office WhatsApp once, then message customers from this device"
+        description="Save your office number and message customers from WhatsApp on this device"
       />
 
       {profile && (
         <OfficeWhatsAppConnect
           profile={profile}
-          onUpdated={(next) => {
-            setProfile(next);
-            setConnectNotice(null);
-          }}
+          onUpdated={setProfile}
         />
       )}
-
-      {connectNotice && (
-        <div className="rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-950" role="alert">
-          <p className="font-medium">{connectNotice}</p>
-        </div>
-      )}
-
-      <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
-        <p className="font-medium">After connecting</p>
-        <p className="mt-1 text-emerald-800">
-          Tap <strong>WhatsApp</strong> on any contact. It opens your office WhatsApp on this device
-          with the message ready — tap Send.
-        </p>
-      </div>
 
       {dueReminders.length > 0 && (
         <Card>
@@ -171,13 +153,7 @@ export default function WhatsAppPageClient() {
                     <p className="text-sm text-stone-500">{reminder.title}</p>
                     <p className="text-xs text-stone-400">{lead.phone}</p>
                   </div>
-                  <WhatsAppSendButton
-                    phone={lead.phone}
-                    message={msg}
-                    compact
-                    profile={profile}
-                    onNeedConnect={setConnectNotice}
-                  />
+                  <WhatsAppSendButton phone={lead.phone} message={msg} compact />
                 </div>
               );
             })}
@@ -215,8 +191,6 @@ export default function WhatsAppPageClient() {
                     phone={lead.phone}
                     message={defaultLeadMessage(lead.customer_name, senderName)}
                     compact
-                    profile={profile}
-                    onNeedConnect={setConnectNotice}
                   />
                   <Link href={`/leads?open=${lead.id}`}>
                     <Button variant="secondary" size="sm">
@@ -257,8 +231,6 @@ export default function WhatsAppPageClient() {
                   phone={order.phone}
                   message={defaultOrderMessage(order.customer_name, order.order_number, senderName)}
                   compact
-                  profile={profile}
-                  onNeedConnect={setConnectNotice}
                 />
               </div>
             ))}
@@ -290,13 +262,7 @@ export default function WhatsAppPageClient() {
                     </p>
                     <p className="mt-2 text-sm text-stone-600">{reminder.message}</p>
                   </div>
-                  <WhatsAppSendButton
-                    phone={reminder.phone}
-                    message={reminder.message}
-                    compact
-                    profile={profile}
-                    onNeedConnect={setConnectNotice}
-                  />
+                  <WhatsAppSendButton phone={reminder.phone} message={reminder.message} compact />
                 </div>
               </div>
             ))}

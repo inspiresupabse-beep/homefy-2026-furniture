@@ -11,7 +11,8 @@
     "lint": "eslint",
     "db:migrate-leads": "node scripts/migrate-leads-schema.mjs",
     "db:migrate-reminders": "node scripts/migrate-reminders.mjs",
-    "db:migrate-staff-power": "node scripts/migrate-staff-power.mjs"
+    "db:migrate-staff-power": "node scripts/migrate-staff-power.mjs",
+    "db:fix-staff": "node scripts/migrate-staff-power.mjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

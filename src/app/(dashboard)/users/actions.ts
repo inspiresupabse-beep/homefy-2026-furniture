@@ -9,7 +9,7 @@ import {
 } from "@/lib/auth/impersonation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { formatActionError, isRoleEnumError } from "@/lib/action-error";
+import { formatActionError, isRoleEnumError, supabaseErrorText } from "@/lib/action-error";
 import { isValidIndianMobile, toE164Phone } from "@/lib/phone";
 import type { StaffPower, UserRole } from "@/lib/types/database";
 
@@ -74,7 +74,7 @@ async function applyProfileRole(
 
   if (!profileError) return null;
 
-  const msg = profileError.message || profileError.details || JSON.stringify(profileError);
+  const msg = supabaseErrorText(profileError) || JSON.stringify(profileError);
 
   if (isRoleEnumError(msg)) {
     return formatActionError(msg);
