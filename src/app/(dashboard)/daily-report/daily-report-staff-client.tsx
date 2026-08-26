@@ -18,6 +18,7 @@ import { formatDailyReportMessage } from "@/lib/daily-report/format-message";
 import { mapReportRow } from "@/lib/daily-report/map-report";
 import { EMPTY_DAILY_METRICS } from "@/lib/daily-report/types";
 import { canAccessLeads } from "@/lib/permissions";
+import { isOfficeWhatsAppConnected, OFFICE_WHATSAPP_REQUIRED_MESSAGE } from "@/lib/office-whatsapp";
 import { openWhatsAppChat, sendMessageViaListener } from "@/lib/whatsapp";
 import { getWhatsAppListenerUrl } from "@/lib/whatsapp-listener-config";
 import { formatCurrency } from "@/lib/utils";
@@ -244,6 +245,11 @@ export default function DailyReportStaffClient() {
   async function handleOpenWhatsApp() {
     const saved = await handleSave(false);
     if (!saved) return;
+
+    if (!isOfficeWhatsAppConnected(profile)) {
+      setError(OFFICE_WHATSAPP_REQUIRED_MESSAGE);
+      return;
+    }
 
     await markDailyReportSent(reportDate);
     setSentAt(new Date().toISOString());
