@@ -1,12 +1,57 @@
 const SETUP_HINT =
   "Database setup incomplete. In Supabase → SQL Editor, run supabase/migrations/010_new_project_fix.sql (adds staff_power and leading_staff role).";
 
+function duplicateFieldMessage(text: string): string | null {
+  const lower = text.toLowerCase();
+
+  const isEmailDuplicate =
+    lower.includes("email_exists") ||
+    lower.includes("users_email") ||
+    (lower.includes("email") &&
+      (lower.includes("already") ||
+        lower.includes("registered") ||
+        lower.includes("exists") ||
+        lower.includes("duplicate") ||
+        lower.includes("unique")));
+
+  if (isEmailDuplicate) {
+    return "This email is already used by another staff account.";
+  }
+
+  const isPhoneDuplicate =
+    lower.includes("phone_exists") ||
+    lower.includes("users_phone") ||
+    (lower.includes("phone") &&
+      (lower.includes("already") ||
+        lower.includes("registered") ||
+        lower.includes("exists") ||
+        lower.includes("duplicate") ||
+        lower.includes("unique")));
+
+  if (isPhoneDuplicate) {
+    return "This mobile number is already used by another staff account.";
+  }
+
+  if (lower.includes("23505") || lower.includes("duplicate key")) {
+    if (lower.includes("email")) {
+      return "This email is already used by another staff account.";
+    }
+    if (lower.includes("phone")) {
+      return "This mobile number is already used by another staff account.";
+    }
+  }
+
+  return null;
+}
+
 export function formatActionError(error: unknown): string {
   if (error == null) return SETUP_HINT;
 
   if (typeof error === "string") {
     const text = error.trim();
     if (!text || text === "{}" || text === "undefined") return SETUP_HINT;
+    const duplicate = duplicateFieldMessage(text);
+    if (duplicate) return duplicate;
     if (text.includes("staff_power") || text.includes("PGRST204")) {
       return "Missing staff_power column. In Supabase SQL Editor run: supabase/migrations/010_new_project_fix.sql";
     }
@@ -15,9 +60,6 @@ export function formatActionError(error: unknown): string {
     }
     if (text.includes("Invalid API key") || text.includes("JWT")) {
       return "Invalid Supabase service key. Update SUPABASE_SERVICE_ROLE_KEY in Vercel and .env.local.";
-    }
-    if (text.includes("phone") && text.includes("already")) {
-      return "This mobile number is already used by another account.";
     }
     return text;
   }

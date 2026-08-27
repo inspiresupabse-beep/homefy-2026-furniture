@@ -10,7 +10,7 @@ import {
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { formatActionError, isRoleEnumError, supabaseErrorText } from "@/lib/action-error";
-import { isValidIndianMobile, toE164Phone } from "@/lib/phone";
+import { formatPhoneDisplay, isValidIndianMobile, phonesMatch, toE164Phone } from "@/lib/phone";
 import type { StaffPower, UserRole } from "@/lib/types/database";
 
 const IMPERSONATION_COOKIE_MAX_AGE = 60 * 60 * 8;
@@ -83,6 +83,40 @@ async function applyProfileRole(
   return formatActionError(msg);
 }
 
+async function findStaffFieldConflict(
+  admin: ReturnType<typeof createAdminClient>,
+  email: string,
+  phoneRaw: string,
+  excludeUserId?: string
+): Promise<string | null> {
+  let emailQuery = admin.from("profiles").select("id, full_name, email").eq("email", email);
+  if (excludeUserId) emailQuery = emailQuery.neq("id", excludeUserId);
+
+  const { data: emailMatch } = await emailQuery.maybeSingle();
+  if (emailMatch) {
+    return `This email is already used by ${emailMatch.full_name} (${emailMatch.email}).`;
+  }
+
+  const { data: phoneRows } = await admin
+    .from("profiles")
+    .select("id, full_name, phone")
+    .not("phone", "is", null);
+
+  const phoneMatch = phoneRows?.find(
+    (row) =>
+      row.id !== excludeUserId &&
+      row.phone &&
+      phonesMatch(row.phone, phoneRaw)
+  );
+
+  if (phoneMatch) {
+    const displayPhone = phoneMatch.phone ? formatPhoneDisplay(phoneMatch.phone) : "";
+    return `This mobile number is already used by ${phoneMatch.full_name}${displayPhone ? ` (${displayPhone})` : ""}.`;
+  }
+
+  return null;
+}
+
 export async function createTeamUser(formData: FormData) {
   const session = await requireAdminSession();
   if (session.error) return { error: session.error };
@@ -110,6 +144,9 @@ export async function createTeamUser(formData: FormData) {
 
   try {
     const admin = createAdminClient();
+
+    const conflict = await findStaffFieldConflict(admin, email, phoneRaw);
+    if (conflict) return { error: conflict };
 
     const { data, error } = await admin.auth.admin.createUser({
       email,
@@ -177,6 +214,9 @@ export async function updateTeamUser(formData: FormData) {
 
   try {
     const admin = createAdminClient();
+
+    const conflict = await findStaffFieldConflict(admin, email, phoneRaw, userId);
+    if (conflict) return { error: conflict };
 
     const updatePayload: {
       email: string;

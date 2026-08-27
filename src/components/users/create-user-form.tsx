@@ -119,7 +119,12 @@ export function CreateUserForm({ onCreated }: { onCreated?: () => void }) {
           </div>
 
           {error && (
-            <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>
+            <div
+              className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
+              role="alert"
+            >
+              {error}
+            </div>
           )}
           {success && (
             <p className="rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
