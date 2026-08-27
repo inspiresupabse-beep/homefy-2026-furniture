@@ -5,6 +5,7 @@ import { updateTeamUser } from "@/app/(dashboard)/users/actions";
 import { Button } from "@/components/ui/button";
 import { ModalOverlay } from "@/components/ui/modal-overlay";
 import { Input, Label, Select } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { formatActionError } from "@/lib/action-error";
 import { USER_ROLES } from "@/lib/roles";
 import { STAFF_POWER_OPTIONS, getStaffPower } from "@/lib/permissions";
@@ -122,10 +123,9 @@ export function EditUserModal({
           </div>
           <div>
             <Label htmlFor="edit_password">New Password</Label>
-            <Input
+            <PasswordInput
               id="edit_password"
               name="password"
-              type="password"
               placeholder="Leave blank to keep current"
               minLength={6}
             />

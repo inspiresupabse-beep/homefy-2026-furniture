@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { HomefyLogo } from "@/components/layout/homefy-logo";
 import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 
 type Mode = "signin" | "forgot";
@@ -87,9 +88,8 @@ export default function LoginPageClient() {
                     Forgot password?
                   </button>
                 </div>
-                <Input
+                <PasswordInput
                   id="password"
-                  type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"

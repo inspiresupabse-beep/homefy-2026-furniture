@@ -6,7 +6,8 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { HomefyLogo } from "@/components/layout/homefy-logo";
 import { Button } from "@/components/ui/button";
-import { Input, Label } from "@/components/ui/input";
+import { Label } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 
 export default function ResetPasswordPage() {
@@ -61,9 +62,8 @@ export default function ResetPasswordPage() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <Label htmlFor="password">New password</Label>
-              <Input
+              <PasswordInput
                 id="password"
-                type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
@@ -74,9 +74,8 @@ export default function ResetPasswordPage() {
             </div>
             <div>
               <Label htmlFor="confirmPassword">Confirm password</Label>
-              <Input
+              <PasswordInput
                 id="confirmPassword"
-                type="password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 placeholder="••••••••"

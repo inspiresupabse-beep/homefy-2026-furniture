@@ -4,6 +4,7 @@ import { useState } from "react";
 import { createTeamUser } from "@/app/(dashboard)/users/actions";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Select } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { USER_ROLES } from "@/lib/roles";
 import { STAFF_POWER_OPTIONS } from "@/lib/permissions";
@@ -82,10 +83,9 @@ export function CreateUserForm({ onCreated }: { onCreated?: () => void }) {
           </div>
           <div>
             <Label htmlFor="password">Password</Label>
-            <Input
+            <PasswordInput
               id="password"
               name="password"
-              type="password"
               placeholder="Min. 6 characters"
               minLength={6}
               required
