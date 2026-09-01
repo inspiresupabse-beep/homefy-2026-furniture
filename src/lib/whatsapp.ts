@@ -54,11 +54,29 @@ const APP_SCHEMES: Record<WhatsAppAppKind, string> = {
   business: "whatsapp-business",
 };
 
-function openCustomUrl(url: string, newTab = false): void {
+const ANDROID_PACKAGES: Record<WhatsAppAppKind, string> = {
+  personal: "com.whatsapp",
+  business: "com.whatsapp.w4b",
+};
+
+function isMobileDevice(): boolean {
+  if (typeof navigator === "undefined") return false;
+  return /Android|iPhone|iPad|iPod|webOS|BlackBerry|IEMobile|Opera Mini/i.test(
+    navigator.userAgent
+  );
+}
+
+function isAndroid(): boolean {
+  if (typeof navigator === "undefined") return false;
+  return /Android/i.test(navigator.userAgent);
+}
+
+/** Mobile needs location.href — programmatic anchor clicks often fail for app schemes. */
+function openAppUrl(url: string): void {
   if (typeof window === "undefined") return;
 
-  if (newTab) {
-    window.open(url, "_blank", "noopener,noreferrer");
+  if (isMobileDevice()) {
+    window.location.assign(url);
     return;
   }
 
@@ -70,9 +88,30 @@ function openCustomUrl(url: string, newTab = false): void {
   link.remove();
 }
 
-/** Opens the installed WhatsApp app home (chat list) — no browser fallback. */
+function openHttpUrl(url: string): void {
+  if (typeof window === "undefined") return;
+
+  if (isMobileDevice()) {
+    window.location.assign(url);
+    return;
+  }
+
+  window.open(url, "_blank", "noopener,noreferrer");
+}
+
+function buildAndroidLaunchIntent(kind: WhatsAppAppKind): string {
+  const pkg = ANDROID_PACKAGES[kind];
+  return `intent://#Intent;scheme=whatsapp;package=${pkg};end`;
+}
+
+/** Opens the installed WhatsApp app home (chat list). */
 export function openWhatsAppAppHome(kind: WhatsAppAppKind): void {
-  openCustomUrl(`${APP_SCHEMES[kind]}://`);
+  if (isAndroid()) {
+    openAppUrl(buildAndroidLaunchIntent(kind));
+    return;
+  }
+
+  openAppUrl(`${APP_SCHEMES[kind]}://`);
 }
 
 export function buildNativeWhatsAppChatUrl(
@@ -99,17 +138,23 @@ export function openWhatsAppAppChat(
   phone: string,
   message?: string
 ): void {
-  openCustomUrl(buildNativeWhatsAppChatUrl(kind, phone, message));
+  // wa.me reliably opens the personal app on mobile (universal link).
+  if (isMobileDevice() && kind === "personal") {
+    openAppUrl(buildWhatsAppUrl(phone, message));
+    return;
+  }
+
+  openAppUrl(buildNativeWhatsAppChatUrl(kind, phone, message));
 }
 
 /** Opens a contact chat in WhatsApp Web with optional prefilled message. */
 export function openWhatsAppWebChat(phone: string, message?: string): void {
-  openCustomUrl(buildWebWhatsAppChatUrl(phone, message), true);
+  openHttpUrl(buildWebWhatsAppChatUrl(phone, message));
 }
 
 /** Opens WhatsApp Web home in the browser (explicit choice only). */
 export function openWhatsAppWeb(): void {
-  openCustomUrl(WHATSAPP_WEB_URL, true);
+  openHttpUrl(WHATSAPP_WEB_URL);
 }
 
 /** @deprecated Use the app picker via WhatsAppSendButton instead. */

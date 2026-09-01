@@ -31,7 +31,8 @@ export function WhatsAppAppPickerModal({ open, onClose, phone, message }: Props)
     } else {
       openWhatsAppAppHome(kind);
     }
-    onClose();
+    // Defer close so mobile browsers keep the user-gesture chain for app opens.
+    window.setTimeout(() => onClose(), 100);
   }
 
   function chooseWeb() {
@@ -40,7 +41,7 @@ export function WhatsAppAppPickerModal({ open, onClose, phone, message }: Props)
     } else {
       openWhatsAppWeb();
     }
-    onClose();
+    window.setTimeout(() => onClose(), 100);
   }
 
   return (
