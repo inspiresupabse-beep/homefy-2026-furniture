@@ -54,11 +54,6 @@ const APP_SCHEMES: Record<WhatsAppAppKind, string> = {
   business: "whatsapp-business",
 };
 
-const ANDROID_PACKAGES: Record<WhatsAppAppKind, string> = {
-  personal: "com.whatsapp",
-  business: "com.whatsapp.w4b",
-};
-
 function isMobileDevice(): boolean {
   if (typeof navigator === "undefined") return false;
   return /Android|iPhone|iPad|iPod|webOS|BlackBerry|IEMobile|Opera Mini/i.test(
@@ -99,43 +94,10 @@ function openHttpUrl(url: string): void {
   window.open(url, "_blank", "noopener,noreferrer");
 }
 
-function isIOS(): boolean {
-  if (typeof navigator === "undefined") return false;
-  return /iPhone|iPad|iPod/i.test(navigator.userAgent);
-}
-
-function buildAndroidLaunchIntent(kind: WhatsAppAppKind): string {
-  const pkg = ANDROID_PACKAGES[kind];
-  const fallback = encodeURIComponent(WHATSAPP_WEB_URL);
-  return `intent://#Intent;action=android.intent.action.MAIN;category=android.intent.category.LAUNCHER;scheme=whatsapp;package=${pkg};S.browser_fallback_url=${fallback};end`;
-}
-
-function buildAndroidChatIntent(
-  kind: WhatsAppAppKind,
-  phone: string,
-  message?: string
-): string {
-  const pkg = ANDROID_PACKAGES[kind];
-  const normalized = normalizeWhatsAppPhone(phone);
-  const params = new URLSearchParams({ phone: normalized });
-  if (message?.trim()) params.set("text", message.trim());
-  const fallback = encodeURIComponent(buildWhatsAppUrl(phone, message));
-  return `intent://send?${params.toString()}#Intent;scheme=whatsapp;package=${pkg};S.browser_fallback_url=${fallback};end`;
-}
-
 /** Href for opening WhatsApp app home — use on a real <a> tag for mobile reliability. */
 export function buildWhatsAppAppHomeHref(kind: WhatsAppAppKind): string {
-  if (typeof navigator === "undefined") return `${APP_SCHEMES[kind]}://`;
-
-  if (isAndroid()) {
-    return buildAndroidLaunchIntent(kind);
-  }
-
-  if (isIOS()) {
-    // Opens the installed app (chat list) on iPhone/iPad.
-    return `${APP_SCHEMES[kind]}://`;
-  }
-
+  // Direct app scheme — Android Chrome opens the installed app on tap.
+  // Do NOT use intent + web.whatsapp.com fallback (shows "use a computer" page).
   return `${APP_SCHEMES[kind]}://`;
 }
 
@@ -153,8 +115,8 @@ export function buildWhatsAppAppChatHref(
     return buildWhatsAppUrl(phone, message);
   }
 
-  if (isAndroid()) {
-    return buildAndroidChatIntent(kind, phone, message);
+  if (isAndroid() && kind === "business") {
+    return buildNativeWhatsAppChatUrl(kind, phone, message);
   }
 
   return buildNativeWhatsAppChatUrl(kind, phone, message);
