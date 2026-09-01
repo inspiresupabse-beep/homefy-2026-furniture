@@ -7,9 +7,10 @@ import { Input, Label } from "@/components/ui/input";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { WhatsAppIcon } from "@/components/icons/whatsapp-icon";
 import { formatPhoneDisplay } from "@/lib/phone";
-import { isWhatsAppLinked, openWhatsAppHome } from "@/lib/whatsapp";
+import { isWhatsAppLinked } from "@/lib/whatsapp";
+import { OpenWhatsAppHomeButton } from "@/components/whatsapp/open-whatsapp-home-button";
 import type { Profile } from "@/lib/types/database";
-import { ExternalLink, Phone } from "lucide-react";
+import { Phone } from "lucide-react";
 
 export function OfficeWhatsAppConnect({
   profile,
@@ -117,21 +118,17 @@ export function OfficeWhatsAppConnect({
         )}
 
         <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">
-          <p className="font-medium">Log in on this PC</p>
+          <p className="font-medium">Open WhatsApp on this device</p>
           <p className="mt-2 leading-relaxed text-amber-900">
-            Tap the button below — if WhatsApp is installed on this PC or phone, it opens your
-            chat list. Otherwise WhatsApp Web opens in the browser.
+            Choose WhatsApp or WhatsApp Business — opens the installed app on PC or phone (your
+            full chat list). Use WhatsApp Web only if you don&apos;t have the app installed.
           </p>
-          <Button
-            type="button"
+          <OpenWhatsAppHomeButton
+            label="Open WhatsApp"
+            compact
             variant="secondary"
-            size="sm"
-            className="mt-3 gap-2"
-            onClick={openWhatsAppHome}
-          >
-            <ExternalLink className="h-4 w-4" />
-            Open WhatsApp
-          </Button>
+            className="mt-3"
+          />
         </div>
       </CardContent>
     </Card>

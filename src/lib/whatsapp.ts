@@ -47,44 +47,36 @@ export function defaultOrderMessage(
 
 export const WHATSAPP_WEB_URL = "https://web.whatsapp.com";
 
-/** Native app home — no phone number, opens chat list (not a specific contact). */
-export const WHATSAPP_APP_HOME_URL = "whatsapp://";
+export type WhatsAppAppKind = "personal" | "business";
 
-/**
- * Opens WhatsApp home (all chats).
- * Tries the installed WhatsApp app on PC/mobile first; falls back to WhatsApp Web.
- */
-export function openWhatsAppHome(): void {
+const WHATSAPP_APP_HOME_URLS: Record<WhatsAppAppKind, string> = {
+  personal: "whatsapp://",
+  business: "whatsapp-business://",
+};
+
+/** Opens the installed WhatsApp app home (chat list) — no browser fallback. */
+export function openWhatsAppAppHome(kind: WhatsAppAppKind): void {
   if (typeof window === "undefined") return;
 
-  let appOpened = false;
-
-  const markAppOpened = () => {
-    appOpened = true;
-  };
-
-  window.addEventListener("blur", markAppOpened, { once: true });
-  document.addEventListener(
-    "visibilitychange",
-    () => {
-      if (document.hidden) markAppOpened();
-    },
-    { once: true }
-  );
-
-  window.setTimeout(() => {
-    if (!appOpened) {
-      window.open(WHATSAPP_WEB_URL, "_blank", "noopener,noreferrer");
-    }
-  }, 1500);
-
   const link = document.createElement("a");
-  link.href = WHATSAPP_APP_HOME_URL;
+  link.href = WHATSAPP_APP_HOME_URLS[kind];
   link.rel = "noopener noreferrer";
   document.body.appendChild(link);
   link.click();
   link.remove();
 }
+
+/** Opens WhatsApp Web in the browser (explicit choice only). */
+export function openWhatsAppWeb(): void {
+  window.open(WHATSAPP_WEB_URL, "_blank", "noopener,noreferrer");
+}
+
+/** @deprecated Use openWhatsAppAppHome via the app picker instead. */
+export function openWhatsAppHome(): void {
+  openWhatsAppAppHome("personal");
+}
+
+export const WHATSAPP_APP_HOME_URL = WHATSAPP_APP_HOME_URLS.personal;
 
 /** Opens WhatsApp on this device (app or WhatsApp Web) with a prefilled message. */
 export function openWhatsAppChat(phone: string, message?: string): void {
