@@ -99,19 +99,70 @@ function openHttpUrl(url: string): void {
   window.open(url, "_blank", "noopener,noreferrer");
 }
 
+function isIOS(): boolean {
+  if (typeof navigator === "undefined") return false;
+  return /iPhone|iPad|iPod/i.test(navigator.userAgent);
+}
+
 function buildAndroidLaunchIntent(kind: WhatsAppAppKind): string {
   const pkg = ANDROID_PACKAGES[kind];
-  return `intent://#Intent;scheme=whatsapp;package=${pkg};end`;
+  const fallback = encodeURIComponent(WHATSAPP_WEB_URL);
+  return `intent://#Intent;action=android.intent.action.MAIN;category=android.intent.category.LAUNCHER;scheme=whatsapp;package=${pkg};S.browser_fallback_url=${fallback};end`;
+}
+
+function buildAndroidChatIntent(
+  kind: WhatsAppAppKind,
+  phone: string,
+  message?: string
+): string {
+  const pkg = ANDROID_PACKAGES[kind];
+  const normalized = normalizeWhatsAppPhone(phone);
+  const params = new URLSearchParams({ phone: normalized });
+  if (message?.trim()) params.set("text", message.trim());
+  const fallback = encodeURIComponent(buildWhatsAppUrl(phone, message));
+  return `intent://send?${params.toString()}#Intent;scheme=whatsapp;package=${pkg};S.browser_fallback_url=${fallback};end`;
+}
+
+/** Href for opening WhatsApp app home — use on a real <a> tag for mobile reliability. */
+export function buildWhatsAppAppHomeHref(kind: WhatsAppAppKind): string {
+  if (typeof navigator === "undefined") return `${APP_SCHEMES[kind]}://`;
+
+  if (isAndroid()) {
+    return buildAndroidLaunchIntent(kind);
+  }
+
+  if (isIOS()) {
+    // Opens the installed app (chat list) on iPhone/iPad.
+    return `${APP_SCHEMES[kind]}://`;
+  }
+
+  return `${APP_SCHEMES[kind]}://`;
+}
+
+/** Href for opening a contact chat in the native app — use on a real <a> tag. */
+export function buildWhatsAppAppChatHref(
+  kind: WhatsAppAppKind,
+  phone: string,
+  message?: string
+): string {
+  if (typeof navigator === "undefined") {
+    return buildNativeWhatsAppChatUrl(kind, phone, message);
+  }
+
+  if (isMobileDevice() && kind === "personal") {
+    return buildWhatsAppUrl(phone, message);
+  }
+
+  if (isAndroid()) {
+    return buildAndroidChatIntent(kind, phone, message);
+  }
+
+  return buildNativeWhatsAppChatUrl(kind, phone, message);
 }
 
 /** Opens the installed WhatsApp app home (chat list). */
 export function openWhatsAppAppHome(kind: WhatsAppAppKind): void {
-  if (isAndroid()) {
-    openAppUrl(buildAndroidLaunchIntent(kind));
-    return;
-  }
-
-  openAppUrl(`${APP_SCHEMES[kind]}://`);
+  openAppUrl(buildWhatsAppAppHomeHref(kind));
 }
 
 export function buildNativeWhatsAppChatUrl(
@@ -138,13 +189,7 @@ export function openWhatsAppAppChat(
   phone: string,
   message?: string
 ): void {
-  // wa.me reliably opens the personal app on mobile (universal link).
-  if (isMobileDevice() && kind === "personal") {
-    openAppUrl(buildWhatsAppUrl(phone, message));
-    return;
-  }
-
-  openAppUrl(buildNativeWhatsAppChatUrl(kind, phone, message));
+  openAppUrl(buildWhatsAppAppChatHref(kind, phone, message));
 }
 
 /** Opens a contact chat in WhatsApp Web with optional prefilled message. */

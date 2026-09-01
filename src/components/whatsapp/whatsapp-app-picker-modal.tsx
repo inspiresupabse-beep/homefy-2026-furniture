@@ -1,47 +1,45 @@
 "use client";
 
 import { WhatsAppIcon } from "@/components/icons/whatsapp-icon";
-import { Button } from "@/components/ui/button";
 import { ModalOverlay } from "@/components/ui/modal-overlay";
 import {
-  openWhatsAppAppChat,
-  openWhatsAppAppHome,
-  openWhatsAppWeb,
-  openWhatsAppWebChat,
-  type WhatsAppAppKind,
+  buildWhatsAppAppChatHref,
+  buildWhatsAppAppHomeHref,
+  buildWebWhatsAppChatUrl,
+  WHATSAPP_WEB_URL,
 } from "@/lib/whatsapp";
+import { cn } from "@/lib/utils";
 import { Briefcase, Globe, X } from "lucide-react";
 
 type Props = {
   open: boolean;
   onClose: () => void;
-  /** When set, opens a contact chat with the prefilled message instead of the app home. */
   phone?: string;
   message?: string;
 };
+
+const pickerLinkClass =
+  "flex h-auto w-full items-center gap-3 rounded-lg px-4 py-3 text-left transition-colors";
 
 export function WhatsAppAppPickerModal({ open, onClose, phone, message }: Props) {
   if (!open) return null;
 
   const isChat = Boolean(phone?.trim());
 
-  function choose(kind: WhatsAppAppKind) {
-    if (isChat && phone) {
-      openWhatsAppAppChat(kind, phone, message);
-    } else {
-      openWhatsAppAppHome(kind);
-    }
-    // Defer close so mobile browsers keep the user-gesture chain for app opens.
-    window.setTimeout(() => onClose(), 100);
-  }
+  const personalHref = isChat && phone
+    ? buildWhatsAppAppChatHref("personal", phone, message)
+    : buildWhatsAppAppHomeHref("personal");
 
-  function chooseWeb() {
-    if (isChat && phone) {
-      openWhatsAppWebChat(phone, message);
-    } else {
-      openWhatsAppWeb();
-    }
-    window.setTimeout(() => onClose(), 100);
+  const businessHref = isChat && phone
+    ? buildWhatsAppAppChatHref("business", phone, message)
+    : buildWhatsAppAppHomeHref("business");
+
+  const webHref = isChat && phone
+    ? buildWebWhatsAppChatUrl(phone, message)
+    : WHATSAPP_WEB_URL;
+
+  function handleNavigate() {
+    window.setTimeout(() => onClose(), 300);
   }
 
   return (
@@ -61,49 +59,58 @@ export function WhatsAppAppPickerModal({ open, onClose, phone, message }: Props)
       <div className="space-y-3 p-4 sm:p-6">
         <p className="text-sm text-stone-500">
           {isChat
-            ? "Pick which app to open this chat. The message will be ready — tap Send in WhatsApp."
-            : "Pick which app to open on this device. Your full chat list will open."}
+            ? "Tap an app below. The message will be ready — press Send in WhatsApp."
+            : "Tap an app below to open your full chat list on this phone."}
         </p>
 
-        <Button
-          type="button"
-          className="h-auto w-full justify-start gap-3 bg-[#25D366] px-4 py-3 text-left text-white hover:bg-[#1da851]"
-          onClick={() => choose("personal")}
+        <a
+          href={personalHref}
+          onClick={handleNavigate}
+          className={cn(
+            pickerLinkClass,
+            "bg-[#25D366] text-white hover:bg-[#1da851] active:bg-[#1da851]"
+          )}
         >
           <WhatsAppIcon className="h-5 w-5 shrink-0" />
           <span>
             <span className="block font-semibold">WhatsApp</span>
             <span className="block text-xs text-emerald-50">Personal / regular app</span>
           </span>
-        </Button>
+        </a>
 
-        <Button
-          type="button"
-          className="h-auto w-full justify-start gap-3 bg-[#128C7E] px-4 py-3 text-left text-white hover:bg-[#0f7a6e]"
-          onClick={() => choose("business")}
+        <a
+          href={businessHref}
+          onClick={handleNavigate}
+          className={cn(
+            pickerLinkClass,
+            "bg-[#128C7E] text-white hover:bg-[#0f7a6e] active:bg-[#0f7a6e]"
+          )}
         >
           <Briefcase className="h-5 w-5 shrink-0" />
           <span>
             <span className="block font-semibold">WhatsApp Business</span>
             <span className="block text-xs text-teal-50">Business app on this device</span>
           </span>
-        </Button>
+        </a>
 
         <div className="border-t border-stone-100 pt-3">
-          <Button
-            type="button"
-            variant="secondary"
-            className="h-auto w-full justify-start gap-3 px-4 py-3 text-left"
-            onClick={chooseWeb}
+          <a
+            href={webHref}
+            rel="noopener noreferrer"
+            onClick={handleNavigate}
+            className={cn(
+              pickerLinkClass,
+              "border border-stone-200 bg-stone-100 text-stone-900 hover:bg-stone-200 active:bg-stone-200"
+            )}
           >
             <Globe className="h-5 w-5 shrink-0 text-stone-500" />
             <span>
-              <span className="block font-medium text-stone-900">WhatsApp Web</span>
+              <span className="block font-medium">WhatsApp Web</span>
               <span className="block text-xs text-stone-500">
-                Browser — use if no app is installed
+                Browser — if no app is installed
               </span>
             </span>
-          </Button>
+          </a>
         </div>
       </div>
     </ModalOverlay>
