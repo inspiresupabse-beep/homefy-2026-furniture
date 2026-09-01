@@ -7,7 +7,7 @@ import { Input, Label } from "@/components/ui/input";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { WhatsAppIcon } from "@/components/icons/whatsapp-icon";
 import { formatPhoneDisplay } from "@/lib/phone";
-import { WHATSAPP_WEB_URL, isWhatsAppLinked } from "@/lib/whatsapp";
+import { isWhatsAppLinked, openWhatsAppHome } from "@/lib/whatsapp";
 import type { Profile } from "@/lib/types/database";
 import { ExternalLink, Phone } from "lucide-react";
 
@@ -119,28 +119,19 @@ export function OfficeWhatsAppConnect({
         <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">
           <p className="font-medium">Log in on this PC</p>
           <p className="mt-2 leading-relaxed text-amber-900">
-            Open{" "}
-            <a
-              href={WHATSAPP_WEB_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="font-semibold underline"
-            >
-              WhatsApp Web
-            </a>{" "}
-            → scan the QR code from your office phone.
+            Tap the button below — if WhatsApp is installed on this PC or phone, it opens your
+            chat list. Otherwise WhatsApp Web opens in the browser.
           </p>
-          <a
-            href={WHATSAPP_WEB_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mt-3 inline-block"
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            className="mt-3 gap-2"
+            onClick={openWhatsAppHome}
           >
-            <Button type="button" variant="secondary" size="sm" className="gap-2">
-              <ExternalLink className="h-4 w-4" />
-              Open WhatsApp Web
-            </Button>
-          </a>
+            <ExternalLink className="h-4 w-4" />
+            Open WhatsApp
+          </Button>
         </div>
       </CardContent>
     </Card>

@@ -47,18 +47,43 @@ export function defaultOrderMessage(
 
 export const WHATSAPP_WEB_URL = "https://web.whatsapp.com";
 
-/** Opens WhatsApp home — chat list on PC (Web) or the app on phone. */
+/** Native app home — no phone number, opens chat list (not a specific contact). */
+export const WHATSAPP_APP_HOME_URL = "whatsapp://";
+
+/**
+ * Opens WhatsApp home (all chats).
+ * Tries the installed WhatsApp app on PC/mobile first; falls back to WhatsApp Web.
+ */
 export function openWhatsAppHome(): void {
   if (typeof window === "undefined") return;
 
-  const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+  let appOpened = false;
 
-  if (isMobile) {
-    window.location.href = "whatsapp://";
-    return;
-  }
+  const markAppOpened = () => {
+    appOpened = true;
+  };
 
-  window.open(WHATSAPP_WEB_URL, "_blank", "noopener,noreferrer");
+  window.addEventListener("blur", markAppOpened, { once: true });
+  document.addEventListener(
+    "visibilitychange",
+    () => {
+      if (document.hidden) markAppOpened();
+    },
+    { once: true }
+  );
+
+  window.setTimeout(() => {
+    if (!appOpened) {
+      window.open(WHATSAPP_WEB_URL, "_blank", "noopener,noreferrer");
+    }
+  }, 1500);
+
+  const link = document.createElement("a");
+  link.href = WHATSAPP_APP_HOME_URL;
+  link.rel = "noopener noreferrer";
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
 }
 
 /** Opens WhatsApp on this device (app or WhatsApp Web) with a prefilled message. */
