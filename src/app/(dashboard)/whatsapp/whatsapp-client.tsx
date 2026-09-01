@@ -7,6 +7,7 @@ import { PageHeader } from "@/components/layout/page-header";
 import { DashboardPageSkeleton } from "@/components/layout/dashboard-page-skeleton";
 import { WhatsAppIcon } from "@/components/icons/whatsapp-icon";
 import { OfficeWhatsAppConnect } from "@/components/whatsapp/office-whatsapp-connect";
+import { OpenWhatsAppHomeButton } from "@/components/whatsapp/open-whatsapp-home-button";
 import { WhatsAppSendButton } from "@/components/whatsapp/whatsapp-send-button";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -120,6 +121,7 @@ export default function WhatsAppPageClient() {
       <PageHeader
         title="WhatsApp"
         description="Save your office number and message customers from WhatsApp on this device"
+        action={<OpenWhatsAppHomeButton label="Open all chats" />}
       />
 
       {profile && (

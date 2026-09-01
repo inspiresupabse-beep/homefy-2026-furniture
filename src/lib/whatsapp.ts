@@ -45,6 +45,22 @@ export function defaultOrderMessage(
   return `Hi ${customerName}, this is ${whatsAppSenderLabel(senderName)} about your order ${orderNumber}. Please share if you have any questions.`;
 }
 
+export const WHATSAPP_WEB_URL = "https://web.whatsapp.com";
+
+/** Opens WhatsApp home — chat list on PC (Web) or the app on phone. */
+export function openWhatsAppHome(): void {
+  if (typeof window === "undefined") return;
+
+  const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+  if (isMobile) {
+    window.location.href = "whatsapp://";
+    return;
+  }
+
+  window.open(WHATSAPP_WEB_URL, "_blank", "noopener,noreferrer");
+}
+
 /** Opens WhatsApp on this device (app or WhatsApp Web) with a prefilled message. */
 export function openWhatsAppChat(phone: string, message?: string): void {
   window.open(buildWhatsAppUrl(phone, message), "_blank", "noopener,noreferrer");

@@ -7,11 +7,9 @@ import { Input, Label } from "@/components/ui/input";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { WhatsAppIcon } from "@/components/icons/whatsapp-icon";
 import { formatPhoneDisplay } from "@/lib/phone";
-import { isWhatsAppLinked } from "@/lib/whatsapp";
+import { WHATSAPP_WEB_URL, isWhatsAppLinked } from "@/lib/whatsapp";
 import type { Profile } from "@/lib/types/database";
 import { ExternalLink, Phone } from "lucide-react";
-
-export const WHATSAPP_WEB_URL = "https://web.whatsapp.com";
 
 export function OfficeWhatsAppConnect({
   profile,
