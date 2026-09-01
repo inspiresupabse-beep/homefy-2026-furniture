@@ -8,7 +8,7 @@ import { markDailyReportSent, upsertDailyReport } from "@/app/(dashboard)/daily-
 import { ReportMetricsForm } from "@/components/daily-report/report-metrics-form";
 import { PageHeader } from "@/components/layout/page-header";
 import { DashboardPageSkeleton } from "@/components/layout/dashboard-page-skeleton";
-import { WhatsAppIcon } from "@/components/icons/whatsapp-icon";
+import { WhatsAppSendButton } from "@/components/whatsapp/whatsapp-send-button";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { DAILY_REPORT_BOSS_PHONE } from "@/lib/daily-report/constants";
@@ -18,11 +18,11 @@ import { formatDailyReportMessage } from "@/lib/daily-report/format-message";
 import { mapReportRow } from "@/lib/daily-report/map-report";
 import { EMPTY_DAILY_METRICS } from "@/lib/daily-report/types";
 import { canAccessLeads } from "@/lib/permissions";
-import { openWhatsAppChat, sendMessageViaListener } from "@/lib/whatsapp";
+import { sendMessageViaListener } from "@/lib/whatsapp";
 import { getWhatsAppListenerUrl } from "@/lib/whatsapp-listener-config";
 import { formatCurrency } from "@/lib/utils";
 import type { Lead, Order, Profile } from "@/lib/types/database";
-import { CheckCircle2, Circle, ExternalLink, RefreshCw, Send, ClipboardList } from "lucide-react";
+import { CheckCircle2, Circle, RefreshCw, Send, ClipboardList } from "lucide-react";
 
 type ReportSummary = {
   report_date: string;
@@ -241,15 +241,15 @@ export default function DailyReportStaffClient() {
     void loadReport();
   }
 
-  async function handleOpenWhatsApp() {
+  async function prepareBossWhatsApp(): Promise<boolean> {
     const saved = await handleSave(false);
-    if (!saved) return;
+    if (!saved) return false;
 
     await markDailyReportSent(reportDate);
     setSentAt(new Date().toISOString());
-    openWhatsAppChat(DAILY_REPORT_BOSS_PHONE, whatsappMessage);
     setMessage("Opening WhatsApp — tap Send from your logged-in account.");
     void loadReport();
+    return true;
   }
 
   if (loading || !profile) return <DashboardPageSkeleton />;
@@ -342,18 +342,15 @@ export default function DailyReportStaffClient() {
                 </pre>
 
                 <div className="flex flex-col gap-2">
-                  <Button
-                    type="button"
-                    className="w-full gap-2 bg-[#25D366] text-white hover:bg-[#1da851]"
-                    onClick={handleOpenWhatsApp}
-                    disabled={saving}
-                  >
-                    <WhatsAppIcon className="h-4 w-4" />
-                    Send to Boss via WhatsApp
-                    <ExternalLink className="h-3.5 w-3.5 opacity-80" />
-                  </Button>
+                  <WhatsAppSendButton
+                    phone={DAILY_REPORT_BOSS_PHONE}
+                    message={whatsappMessage}
+                    label="Send to Boss via WhatsApp"
+                    className="w-full"
+                    onBeforeOpen={prepareBossWhatsApp}
+                  />
                   <p className="text-center text-xs text-stone-500">
-                    Opens WhatsApp on this device — sends from your logged-in account
+                    Choose WhatsApp app — message ready to send from your logged-in account
                   </p>
 
                   {listenerReady && (

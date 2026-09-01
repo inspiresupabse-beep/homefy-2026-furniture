@@ -4,8 +4,10 @@ import { WhatsAppIcon } from "@/components/icons/whatsapp-icon";
 import { Button } from "@/components/ui/button";
 import { ModalOverlay } from "@/components/ui/modal-overlay";
 import {
+  openWhatsAppAppChat,
   openWhatsAppAppHome,
   openWhatsAppWeb,
+  openWhatsAppWebChat,
   type WhatsAppAppKind,
 } from "@/lib/whatsapp";
 import { Briefcase, Globe, X } from "lucide-react";
@@ -13,18 +15,31 @@ import { Briefcase, Globe, X } from "lucide-react";
 type Props = {
   open: boolean;
   onClose: () => void;
+  /** When set, opens a contact chat with the prefilled message instead of the app home. */
+  phone?: string;
+  message?: string;
 };
 
-export function WhatsAppAppPickerModal({ open, onClose }: Props) {
+export function WhatsAppAppPickerModal({ open, onClose, phone, message }: Props) {
   if (!open) return null;
 
+  const isChat = Boolean(phone?.trim());
+
   function choose(kind: WhatsAppAppKind) {
-    openWhatsAppAppHome(kind);
+    if (isChat && phone) {
+      openWhatsAppAppChat(kind, phone, message);
+    } else {
+      openWhatsAppAppHome(kind);
+    }
     onClose();
   }
 
   function chooseWeb() {
-    openWhatsAppWeb();
+    if (isChat && phone) {
+      openWhatsAppWebChat(phone, message);
+    } else {
+      openWhatsAppWeb();
+    }
     onClose();
   }
 
@@ -44,7 +59,9 @@ export function WhatsAppAppPickerModal({ open, onClose }: Props) {
 
       <div className="space-y-3 p-4 sm:p-6">
         <p className="text-sm text-stone-500">
-          Pick which app to open on this device. Your chat list will open — not a single contact.
+          {isChat
+            ? "Pick which app to open this chat. The message will be ready — tap Send in WhatsApp."
+            : "Pick which app to open on this device. Your full chat list will open."}
         </p>
 
         <Button
@@ -81,7 +98,9 @@ export function WhatsAppAppPickerModal({ open, onClose }: Props) {
             <Globe className="h-5 w-5 shrink-0 text-stone-500" />
             <span>
               <span className="block font-medium text-stone-900">WhatsApp Web</span>
-              <span className="block text-xs text-stone-500">Browser only — use if no app is installed</span>
+              <span className="block text-xs text-stone-500">
+                Browser — use if no app is installed
+              </span>
             </span>
           </Button>
         </div>

@@ -49,38 +49,79 @@ export const WHATSAPP_WEB_URL = "https://web.whatsapp.com";
 
 export type WhatsAppAppKind = "personal" | "business";
 
-const WHATSAPP_APP_HOME_URLS: Record<WhatsAppAppKind, string> = {
-  personal: "whatsapp://",
-  business: "whatsapp-business://",
+const APP_SCHEMES: Record<WhatsAppAppKind, string> = {
+  personal: "whatsapp",
+  business: "whatsapp-business",
 };
 
-/** Opens the installed WhatsApp app home (chat list) — no browser fallback. */
-export function openWhatsAppAppHome(kind: WhatsAppAppKind): void {
+function openCustomUrl(url: string, newTab = false): void {
   if (typeof window === "undefined") return;
 
+  if (newTab) {
+    window.open(url, "_blank", "noopener,noreferrer");
+    return;
+  }
+
   const link = document.createElement("a");
-  link.href = WHATSAPP_APP_HOME_URLS[kind];
+  link.href = url;
   link.rel = "noopener noreferrer";
   document.body.appendChild(link);
   link.click();
   link.remove();
 }
 
-/** Opens WhatsApp Web in the browser (explicit choice only). */
-export function openWhatsAppWeb(): void {
-  window.open(WHATSAPP_WEB_URL, "_blank", "noopener,noreferrer");
+/** Opens the installed WhatsApp app home (chat list) — no browser fallback. */
+export function openWhatsAppAppHome(kind: WhatsAppAppKind): void {
+  openCustomUrl(`${APP_SCHEMES[kind]}://`);
 }
 
-/** @deprecated Use openWhatsAppAppHome via the app picker instead. */
+export function buildNativeWhatsAppChatUrl(
+  kind: WhatsAppAppKind,
+  phone: string,
+  message?: string
+): string {
+  const normalized = normalizeWhatsAppPhone(phone);
+  const params = new URLSearchParams({ phone: normalized });
+  if (message?.trim()) params.set("text", message.trim());
+  return `${APP_SCHEMES[kind]}://send?${params.toString()}`;
+}
+
+export function buildWebWhatsAppChatUrl(phone: string, message?: string): string {
+  const normalized = normalizeWhatsAppPhone(phone);
+  const params = new URLSearchParams({ phone: normalized });
+  if (message?.trim()) params.set("text", message.trim());
+  return `https://web.whatsapp.com/send?${params.toString()}`;
+}
+
+/** Opens a contact chat in the installed WhatsApp app with optional prefilled message. */
+export function openWhatsAppAppChat(
+  kind: WhatsAppAppKind,
+  phone: string,
+  message?: string
+): void {
+  openCustomUrl(buildNativeWhatsAppChatUrl(kind, phone, message));
+}
+
+/** Opens a contact chat in WhatsApp Web with optional prefilled message. */
+export function openWhatsAppWebChat(phone: string, message?: string): void {
+  openCustomUrl(buildWebWhatsAppChatUrl(phone, message), true);
+}
+
+/** Opens WhatsApp Web home in the browser (explicit choice only). */
+export function openWhatsAppWeb(): void {
+  openCustomUrl(WHATSAPP_WEB_URL, true);
+}
+
+/** @deprecated Use the app picker via WhatsAppSendButton instead. */
 export function openWhatsAppHome(): void {
   openWhatsAppAppHome("personal");
 }
 
-export const WHATSAPP_APP_HOME_URL = WHATSAPP_APP_HOME_URLS.personal;
+export const WHATSAPP_APP_HOME_URL = `${APP_SCHEMES.personal}://`;
 
-/** Opens WhatsApp on this device (app or WhatsApp Web) with a prefilled message. */
+/** @deprecated Use the app picker via WhatsAppSendButton instead. */
 export function openWhatsAppChat(phone: string, message?: string): void {
-  window.open(buildWhatsAppUrl(phone, message), "_blank", "noopener,noreferrer");
+  openWhatsAppWebChat(phone, message);
 }
 
 export async function sendMessageViaListener(
